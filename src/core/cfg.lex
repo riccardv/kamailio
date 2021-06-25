@@ -512,8 +512,8 @@ TLS			"tls"|"TLS"
 SCTP		"sctp"|"SCTP"
 WS		"ws"|"WS"
 WSS		"wss"|"WSS"
-INET		"inet"|"INET"
-INET6		"inet6"|"INET6"
+INET		"inet"|"INET"|"ipv4"|"IPv4"|"IPV4"
+INET6		"inet6"|"INET6"|"ipv6"|"IPv6"|"IPV6"
 SSLv23			"sslv23"|"SSLv23"|"SSLV23"
 SSLv2			"sslv2"|"SSLv2"|"SSLV2"
 SSLv3			"sslv3"|"SSLv3"|"SSLV3"
@@ -1337,7 +1337,7 @@ IMPORTFILE      "import_file"
 <DEFINE_DATA>\\{CR}		{	count(); ksr_cfg_print_part(yytext); } /* eat the escaped CR */
 <DEFINE_DATA>{CR}		{	count();
 							ksr_cfg_print_part(yytext);
-							if (pp_define_set(strlen(s_buf.s), s_buf.s)) return 1;
+							if (pp_define_set(strlen(s_buf.s), s_buf.s, KSR_PPDEF_NORMAL)) return 1;
 							memset(&s_buf, 0, sizeof(s_buf));
 							state = INITIAL;
 							ksr_cfg_print_initial_state();
@@ -2007,7 +2007,7 @@ int pp_define(int len, const char *text)
 	return 0;
 }
 
-int pp_define_set(int len, char *text)
+int pp_define_set(int len, char *text, int mode)
 {
 	int ppos;
 
@@ -2090,7 +2090,7 @@ int pp_define_env(const char *text, int len)
 		LM_ERR("cannot set define name [%s]\n", (char*)text);
 		return -1;
 	}
-	if(pp_define_set(defvalue.len, defvalue.s)<0) {
+	if(pp_define_set(defvalue.len, defvalue.s, KSR_PPDEF_NORMAL)<0) {
 		LM_ERR("cannot set define value [%s]\n", (char*)text);
 		return -1;
 	}
