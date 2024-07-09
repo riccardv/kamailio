@@ -90,9 +90,8 @@ Chapter 1. Admin Guide
 
 1. Overview
 
-   This modules allows Kamailio to control the TCP connection options
-   (such as the keepalive mechanism), on demand, and on a per-socket
-   basis.
+   This module allows Kamailio to control the TCP connection options (such
+   as the keepalive mechanism), on demand, and on a per-socket basis.
 
    Note: the keepalive functions only work on systems with the
    HAVE_TCP_KEEPIDLE, HAVE_TCP_KEEPCNT and HAVE_TCP_KEEPINTVL macros
@@ -139,7 +138,7 @@ modparam("tcpops", "event_callback", "ksr_tcpops_event")
 ...
 -- event callback function implemented in Lua
 function ksr_tcpops_event(evname)
-        KSR.info("===== evapi module triggered event: " .. evname .. "\n");
+        KSR.info("===== tcpops module triggered event: " .. evname .. "\n");
         return 1;
 end
 ...
@@ -437,6 +436,14 @@ event_route[tcp:closed] {
 
    Whether these routes are always called, never, or on a per socket basis
    is controlled by the closed_event parameter.
+
+   Note that the event routes can be executed by TCP main process, which
+   manages the TCP connections but does not hande the SIP traffic over
+   them. It is very important not do do any time consuming operations
+   inside the event routes. Also, many resources might not be available in
+   the TCP main process (e.g., database connections), consider using async
+   module with async_task_data(...) or async_task_group_data() functions
+   for delegating task execution to async workers.
 
 4.1.  tcp:closed
 

@@ -53,6 +53,8 @@ Patric Marschall
               3.26. db_update_as_insert (string)
               3.27. default_db_url(str)
               3.28. matching_mode(int)
+              3.29. UTC_timestamps(int)
+              3.30. use_domain_crc32(str)
 
         4. Changes from usrloc module
 
@@ -124,8 +126,10 @@ Patric Marschall
    1.26. Set db_update_as_insert parameter
    1.27. Set default_db_type parameter
    1.28. Set matching_mode parameter
-   1.29. Set db_mode parameter
-   1.30. Example database content - reg_table (locdb) table
+   1.29. Set UTC_timestamps parameter
+   1.30. Set use_domain_crc32 parameter
+   1.31. Set db_mode parameter
+   1.32. Example database content - reg_table (locdb) table
 
 Chapter 1. User's Guide
 
@@ -167,6 +171,8 @@ Chapter 1. User's Guide
         3.26. db_update_as_insert (string)
         3.27. default_db_url(str)
         3.28. matching_mode(int)
+        3.29. UTC_timestamps(int)
+        3.30. use_domain_crc32(str)
 
    4. Changes from usrloc module
 
@@ -285,6 +291,8 @@ Warning
    3.26. db_update_as_insert (string)
    3.27. default_db_url(str)
    3.28. matching_mode(int)
+   3.29. UTC_timestamps(int)
+   3.30. use_domain_crc32(str)
 
 3.1. write_db_url (string)
 
@@ -479,9 +487,9 @@ modparam("p_usrloc", "failover_level", "1")
 
    Specifies the interval (in seconds) in which a timer process shall
    check the availability of the databases and try to reconnect to broken
-   ones. It don't make sense to choose a lower value as 10. It's necessary
-   to provide a writeable master database, otherwise this check stays
-   disabled.
+   ones. It doesn't make sense to choose a lower value as 10. It's
+   necessary to provide a writeable master database, otherwise this check
+   stays disabled.
 
    Default value is “10”.
 
@@ -510,11 +518,11 @@ modparam("p_usrloc", "db_use_transactions", "0")
    activate transaction the db_use_transactions parameter must be also
    set.
 
-   Default value is “READ UNCOMMITED”.
+   Default value is “READ UNCOMMITTED”.
 
    Example 1.17. Set db_transaction_level parameter
 ...
-modparam("p_usrloc", "db_transaction_level", "READ UNCOMMITED")
+modparam("p_usrloc", "db_transaction_level", "READ UNCOMMITTED")
 ...
 
 3.18. write_on_master_db (int)
@@ -623,6 +631,7 @@ modparam("p_usrloc", "default_db_type", "cluster")
      * 0 uses the old style using aor, contact and call-id
      * 1 uses ruid value
      * 2 uses the new style using aor, contact and call-id
+     * 3 uses contact uniq value + ruid value
 
    Default value is 0
 
@@ -680,6 +689,30 @@ modparam("p_usrloc", "matching_mode", 2)
 kamcmd cfg.set_now_int p_usrloc matching_mode 2
 kamcmd cfg.get p_usrloc matching_mode
 
+3.29. UTC_timestamps(int)
+
+   Enables UTC timestamps for expires and last_modified columns. It can be
+   changed at runtime via rpc command.
+
+   Default value is 0 (disabled).
+
+   Example 1.29. Set UTC_timestamps parameter
+...
+modparam("p_usrloc", "UTC_timestamps", 1)
+...
+
+3.30. use_domain_crc32(str)
+
+   Enables or disables the crc32 of domain part for user@domain. If
+   disabled, will calculate crc32 only for user part.
+
+   Default value is “1” (enabled).
+
+   Example 1.30. Set use_domain_crc32 parameter
+...
+modparam("p_usrloc", "use_domain_crc32", "0")
+...
+
 4.  Changes from usrloc module
 
    4.1. db_mode (integer)
@@ -702,7 +735,7 @@ kamcmd cfg.get p_usrloc matching_mode
 
    Default value is 3.
 
-   Example 1.29. Set db_mode parameter
+   Example 1.31. Set db_mode parameter
 ...
 modparam("p_usrloc", "db_mode", 2)
 ...
@@ -736,7 +769,7 @@ modparam("p_usrloc", "db_mode", 2)
    complete database documentation on the project webpage,
    https://www.kamailio.org/docs/db-tables/kamailio-db-devel.html.
 
-   Example 1.30. Example database content - reg_table (locdb) table
+   Example 1.32. Example database content - reg_table (locdb) table
 ...
 +----+----+------+--------+--------+---------------------+-------+----+
 | id | no | url  | status | errors | failover            | spare | rg |
@@ -763,7 +796,7 @@ modparam("p_usrloc", "db_mode", 2)
    the respective database in the p_usrloc to the value “2”. This setting
    is autodetected from all modules on the server cluster. Changes in the
    locdb table are periodically polled with help of a timer process. After
-   one minute the all read and write traffic is removed from the
+   one minute all the read and write traffic is removed from the
    deactivated database, and maintenance can be done.
 
    In order to activate the database again, after the maintenance has been
@@ -906,7 +939,7 @@ _nc, db_key_t _o, db_res_t** _r);
    Lookup the first and if needed the second key, and performs a query in
    one of the chosen databases. The returned handle _r_h must be used to
    free the result set after the usage of the returned database entries,
-   otherwise a memory leak will occur.You must call ul_db_free_result
+   otherwise a memory leak will occur. You must call ul_db_free_result
    before you can call ul_db_query again!
 
    Meaning of the parameters is as follows:

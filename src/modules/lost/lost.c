@@ -53,6 +53,8 @@ httpc_api_t httpapi;
 int lost_geoloc_type = 0;
 /* lost: Geolocation header value order: first (0) or last (1) (default: 0) */
 int lost_geoloc_order = 0;
+/* lost: Geolocation header 3d representation: yes (1) or no (0) (default: 0) */
+int lost_geoloc_3d = 0;
 /* lost: Recursion allowed: yes (1) or no (0) (default: 1 = allowed) */
 int lost_recursion = 1;
 /* lost geo profile: first (0), last (1), geo (2) or civic (3) (default: 0) */
@@ -124,6 +126,7 @@ static param_export_t params[] = {{"exact_type", PARAM_INT, &held_exact_type},
 		{"location_type", PARAM_STR, &held_loc_type},
 		{"recursion", PARAM_INT, &lost_recursion},
 		{"location_profile", PARAM_INT, &lost_profile},
+		{"location_3d", PARAM_INT, &lost_geoloc_3d},
 		{"verbose", PARAM_INT, &lost_verbose},
 		{"geoheader_type", PARAM_INT, &lost_geoloc_type},
 		{"geoheader_order", PARAM_INT, &lost_geoloc_order}, {0, 0, 0}};
@@ -212,7 +215,7 @@ static int fixup_lost_held_query(void **param, int param_no)
 static int fixup_free_lost_held_query(void **param, int param_no)
 {
 	if(param_no == 1) {
-		return fixup_spve_null(param, 1);	
+		return fixup_spve_null(param, 1);
 	}
 	if((param_no == 2) || (param_no == 3) || (param_no == 4)) {
 		return fixup_free_pvar_null(param, 1);

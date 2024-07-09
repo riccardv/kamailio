@@ -31,6 +31,11 @@ Mojtaba Esfandiari.S
                     4.3.5. lrkp_alg (integer)
                     4.3.6. hash_table_tout (integer)
                     4.3.7. hash_table_size (integer)
+                    4.3.8. custom_sdp_ip_avp (string)
+                    4.3.9. gt (integer)
+                    4.3.10. behind_nat (integer)
+                    4.3.11. start_port (integer)
+                    4.3.12. end_port (integer)
 
               4.4. Functions
 
@@ -46,8 +51,13 @@ Mojtaba Esfandiari.S
    1.5. Set lrkp_alg parameter
    1.6. Set hash_table_tout parameter
    1.7. Set hash_table_size parameter
-   1.8. set_lrkproxy_set usage
-   1.9. lrkproxy_manage usage
+   1.8. Set custom_sdp_ip_avp parameter
+   1.9. Set gt parameter
+   1.10. Set behind_nat parameter
+   1.11. Set start_port parameter
+   1.12. Set start_port parameter
+   1.13. set_lrkproxy_set usage
+   1.14. lrkproxy_manage usage
 
 Chapter 1. Admin Guide
 
@@ -73,6 +83,11 @@ Chapter 1. Admin Guide
               4.3.5. lrkp_alg (integer)
               4.3.6. hash_table_tout (integer)
               4.3.7. hash_table_size (integer)
+              4.3.8. custom_sdp_ip_avp (string)
+              4.3.9. gt (integer)
+              4.3.10. behind_nat (integer)
+              4.3.11. start_port (integer)
+              4.3.12. end_port (integer)
 
         4.4. Functions
 
@@ -142,6 +157,11 @@ Chapter 1. Admin Guide
         4.3.5. lrkp_alg (integer)
         4.3.6. hash_table_tout (integer)
         4.3.7. hash_table_size (integer)
+        4.3.8. custom_sdp_ip_avp (string)
+        4.3.9. gt (integer)
+        4.3.10. behind_nat (integer)
+        4.3.11. start_port (integer)
+        4.3.12. end_port (integer)
 
    4.4. Functions
 
@@ -172,15 +192,19 @@ Chapter 1. Admin Guide
    Default value is “NONE” (disabled).
 
    Example 1.1. Set lrkproxy_sock parameter
-...
-# single lrkproxy
-modparam("lrkproxy", "lrkproxy_sock", "udp:192.168.122.108:8080")
+                                                ...
+                                                # single lrkproxy
+                                                modparam("lrkproxy", "lrkproxy_s
+ock", "udp:192.168.122.108:8080")
 
-# multiple lrkproxies for LB in diffenrent machine
-modparam("lrkproxy", "lrkproxy_sock", "udp:192.168.122.108:8080")
-modparam("lrkproxy", "lrkproxy_sock", "udp:192.168.122.109:8080")
+                                                # multiple lrkproxies for LB in
+different machine
+                                                modparam("lrkproxy", "lrkproxy_s
+ock", "udp:192.168.122.108:8080")
+                                                modparam("lrkproxy", "lrkproxy_s
+ock", "udp:192.168.122.109:8080")
 
-...
+                                                ...
 
 4.3.2. lrkproxy_disable_tout (integer)
 
@@ -191,9 +215,10 @@ modparam("lrkproxy", "lrkproxy_sock", "udp:192.168.122.109:8080")
    Default value is “60”.
 
    Example 1.2. Set lrkproxy_disable_tout parameter
-...
-modparam("lrkproxy", "lrkproxy_disable_tout", 20)
-...
+                                                ...
+                                                modparam("lrkproxy", "lrkproxy_d
+isable_tout", 20)
+                                                ...
 
 4.3.3. lrkproxy_tout (integer)
 
@@ -202,9 +227,10 @@ modparam("lrkproxy", "lrkproxy_disable_tout", 20)
    Default value is “1”.
 
    Example 1.3. Set lrkproxy_tout parameter
-...
-modparam("lrkproxy", "lrkproxy_tout", 2)
-...
+                                                ...
+                                                modparam("lrkproxy", "lrkproxy_t
+out", 2)
+                                                ...
 
 4.3.4. lrkproxy_retr (integer)
 
@@ -214,9 +240,10 @@ modparam("lrkproxy", "lrkproxy_tout", 2)
    Default value is “5”.
 
    Example 1.4. Set lrkproxy_retr parameter
-...
-modparam("lrkproxy", "lrkproxy_retr", 2)
-...
+                                                ...
+                                                modparam("lrkproxy", "lrkproxy_r
+etr", 2)
+                                                ...
 
 4.3.5. lrkp_alg (integer)
 
@@ -226,9 +253,10 @@ modparam("lrkproxy", "lrkproxy_retr", 2)
    Default value is “0”.
 
    Example 1.5. Set lrkp_alg parameter
-...
-modparam("lrkproxy", "lrkp_alg", 1)
-...
+                                                ...
+                                                modparam("lrkproxy", "lrkp_alg",
+ 1)
+                                                ...
 
 4.3.6. hash_table_tout (integer)
 
@@ -246,14 +274,15 @@ modparam("lrkproxy", "lrkp_alg", 1)
    the insert/remove/lookup path.
 
    NOTE: When configuring this parameter, one should consider maximum call
-   time VS share memory for unfinished calls.
+   time VS shared memory for unfinished calls.
 
    Default value is “3600”.
 
    Example 1.6. Set hash_table_tout parameter
-...
-modparam("lrkproxy", "hash_table_tout", "3600")
-...
+                                                ...
+                                                modparam("lrkproxy", "hash_table
+_tout", "3600")
+                                                ...
 
 4.3.7. hash_table_size (integer)
 
@@ -262,9 +291,77 @@ modparam("lrkproxy", "hash_table_tout", "3600")
    Default value is “128”.
 
    Example 1.7. Set hash_table_size parameter
-...
-modparam("lrkproxy", "hash_table_size", 256)
-...
+                                                ...
+                                                modparam("lrkproxy", "hash_table
+_size", 256)
+                                                ...
+
+4.3.8. custom_sdp_ip_avp (string)
+
+   This option useful for solving STUN and help UDP packets make it across
+   NAT devices safe and sound. In this way, it should be set by clients'
+   IP public manually.
+
+   Default value is “NULL”.
+
+   Example 1.8. Set custom_sdp_ip_avp parameter
+                                                ...
+                                                modparam("lrkproxy", "custom_sdp
+_ip_avp", "$avp(RR_CUSTOM_SDP_IP_AVP)")
+                                                ...
+
+4.3.9. gt (integer)
+
+   This option useful for optimization in allocation port resource in
+   lrkproxy service.
+
+   Default value is “0”.
+
+   Example 1.9. Set gt parameter
+                                                ...
+                                                modparam("lrkproxy", "gt", "1")
+                                                ...
+
+4.3.10. behind_nat (integer)
+
+   The behind_nat is used when the LRKProxy is behind NAT firewall and the
+   external IP should be as Advertised IP. It could be set 0:disable or
+   1:enable. If you use AWS for LRKProxy, you might should set behind_nat
+   option.
+
+   Default value is “0”.
+
+   Example 1.10. Set behind_nat parameter
+                                                ...
+                                                modparam("lrkproxy", "behind_nat
+", "1")
+                                                ...
+
+4.3.11. start_port (integer)
+
+   This option use for local rang port for working with LRKProxy engine.
+   Default value is based on LRKProxy engine option. For example if the
+   range of ports in LRKProxy is set from 20000 to 30000, You could use
+   this option to set a subset of the LRKProxy range.
+
+   Example 1.11. Set start_port parameter
+                                                ...
+                                                modparam("lrkproxy", "start_port
+", "25000")
+                                                ...
+
+4.3.12. end_port (integer)
+
+   This option use for local rang port for working with LRKProxy engine.
+   Default value is based on LRKProxy engine option. For example if the
+   range of ports in LRKProxy is set from 20000 to 30000, You could use
+   this option to set a subset of the LRKProxy range.
+
+   Example 1.12. Set start_port parameter
+                                                ...
+                                                modparam("lrkproxy", "end_port",
+ "28000")
+                                                ...
 
 4.4. Functions
 
@@ -277,11 +374,11 @@ modparam("lrkproxy", "hash_table_size", 256)
    This function can be used from REQUEST_ROUTE, ONREPLY_ROUTE,
    BRANCH_ROUTE.
 
-   Example 1.8. set_lrkproxy_set usage
-...
-set_lrkproxy_set("0");
-lrkproxy_manage();
-...
+   Example 1.13. set_lrkproxy_set usage
+                                                ...
+                                                set_lrkproxy_set("0");
+                                                lrkproxy_manage();
+                                                ...
 
 4.4.2.  lrkproxy_manage([flags [, ip_address]])
 
@@ -302,17 +399,17 @@ lrkproxy_manage();
           + external,internal - The shorthand of this flag is "ei". This
             can be used to relay media sessions between two different NIC
             from external to internal path.
-     * ip_address - new SDP IP address.This optional parameter is under
+     * ip_address - new SDP IP address. This optional parameter is under
        development.
 
    This function can be used from ANY_ROUTE.
 
-   Example 1.9. lrkproxy_manage usage
-...
-lrkproxy_manage();
-//or
-lrkproxy_manage("ie");
-//or
-lrkproxy_manage("ei");
+   Example 1.14. lrkproxy_manage usage
+                                                ...
+                                                lrkproxy_manage();
+                                                //or
+                                                lrkproxy_manage("ie");
+                                                //or
+                                                lrkproxy_manage("ei");
 
-...
+                                                ...

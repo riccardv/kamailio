@@ -98,6 +98,8 @@ int pxml_force_single_body = 0;
 str pxml_single_body_priorities = str_init("Available|Ringing|On the Phone");
 str pxml_single_body_lookup_element = str_init("note");
 
+unsigned int pxml_default_expires = 3600;
+
 /** SL API structure */
 sl_api_t slb;
 
@@ -138,6 +140,7 @@ static param_export_t params[]={
 	{ "force_presence_single_body", INT_PARAM, &pxml_force_single_body },
 	{ "presence_single_body_priorities",  PARAM_STR, &pxml_single_body_priorities },
 	{ "presence_single_body_lookup_element", PARAM_STR, &pxml_single_body_lookup_element },
+	{ "default_expires", INT_PARAM, &pxml_default_expires },
 	{ 0, 0, 0}
 };
 /* clang-format on */
@@ -167,8 +170,8 @@ static int mod_init(void)
 		return 0;
 	}
 
-	LM_DBG("db_url=%s (len=%d addr=%p)\n", ZSW(pxml_db_url.s),
-			pxml_db_url.len, pxml_db_url.s);
+	LM_DBG("db_url=%s (len=%d addr=%p)\n", ZSW(pxml_db_url.s), pxml_db_url.len,
+			pxml_db_url.s);
 
 	/* bind the SL API */
 	if(sl_load_api(&slb) != 0) {
@@ -182,7 +185,7 @@ static int mod_init(void)
 	}
 
 	if(psapi.add_event == NULL || psapi.update_watchers_status == NULL) {
-		LM_ERR("requited presence api not available\n");
+		LM_ERR("required presence api not available\n");
 		return -1;
 	}
 	if(xml_add_events() < 0) {

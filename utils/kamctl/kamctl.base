@@ -10,7 +10,7 @@ locate_tool() {
 	while [ -n "$1" ]
 	do
 		if [ -x /usr/bin/which ] ; then
-			TOOLPATH=`which $1`
+			TOOLPATH=`which $1 2> /dev/null`
 			if [ -n "$TOOLPATH" ]; then
 				return
 			fi
@@ -381,9 +381,10 @@ usage_tls() {
 	mecho " -- command 'tls'"
 	echo
 cat <<EOF
- tls rootCA [<etcdir>] .......... creates new rootCA
+ tls rootCA [<etcdir>] ............ creates new rootCA
  tls userCERT <user> [<etcdir>] ... creates user certificate
- default <etcdir> is $ETCDIR/tls
+ * default <etcdir> is $ETCDIR/tls
+ tls gen-certs [<domain>] ......... generate self signed certificate
 EOF
 }
 
@@ -511,6 +512,8 @@ cat <<EOF
  dispatcher add <setid> <destination> [flags] [priority] [attrs] [description]
             .......................... add gateway
  dispatcher rm <id> .................. delete gateway
+ dispatcher rmip <ip> <setid>......... delete gateway <ip> in <setid>
+ dispatcher rmset <setid> ............. delete all gateways in <setid>
 EOF
 }
 USAGE_FUNCTIONS="$USAGE_FUNCTIONS usage_dispatcher"
@@ -555,6 +558,7 @@ cat <<EOF
  srv aliases ................... show the list of server aliases
  srv rpclist ................... show the list of server rpc commands
  srv debug [<level>] ........... control the server debug level
+ srv modules ................... show the list of loaded modules
  srv version ................... show the server version
 EOF
 }
@@ -577,10 +581,10 @@ USAGE_FUNCTIONS="$USAGE_FUNCTIONS usage_mtree"
 
 usage_acc() {
 	echo
-	mecho " -- command 'acc' - manage accounding records"
+	mecho " -- command 'acc' - manage accounting records"
 	echo
 cat <<EOF
- acc initdb .................. init acc table by adding extra colums
+ acc initdb .................. init acc table by adding extra columns
  acc showdb .................. show content of acc table
  recent [<secs>] ............. show most recent records in acc (default 300s)
 EOF
@@ -595,7 +599,7 @@ USAGE_FUNCTIONS="$USAGE_FUNCTIONS usage_acc"
 mdbg() {
 	if [ "0$VERBOSE" -ne 0 ] ; then
 		if [ -t 1 -a -z "$NOHLPRINT" ] ; then
-			echo -e "\033[1m$1\033[0m"
+			printf "\033[1m%s\033[0m\n" "$1"
 		else
 			echo "$1"
 		fi
@@ -604,7 +608,7 @@ mdbg() {
 
 mwarn() {
 	if [ -t 1 -a -z "$NOHLPRINT" ] ; then
-		echo -e '\E[37;32m'"\033[1mWARNING: $1\033[0m"
+		printf "\033[32;1mWARNING: %s\033[0m\n" "$1"
 	else
 		echo "** WARNING: $1"
 	fi
@@ -612,7 +616,7 @@ mwarn() {
 
 minfo() {
 	if [ -t 1 -a -z "$NOHLPRINT" ] ; then
-		echo -e '\E[37;33m'"\033[1mINFO: $1\033[0m"
+		printf "\033[33;1mINFO: %s\033[0m\n" "$1"
 	else
 		echo "** INFO: $1"
 	fi
@@ -620,7 +624,7 @@ minfo() {
 
 mecho() {
 	if [ -t 1 -a -z "$NOHLPRINT" ] ; then
-		echo -e "\033[1m$1\033[0m"
+		printf "\033[1m%s\033[0m\n" "$1"
 	else
 		echo "$1"
 	fi
@@ -628,7 +632,7 @@ mecho() {
 
 merr() {
 	if [ -t 1 -a -z "$NOHLPRINT" ] ; then
-		echo -e '\E[37;31m'"\033[1mERROR: $1\033[0m"
+		printf "\033[31;1mERROR: %s\033[0m\n" "$1"
 	else
 		echo "** ERROR: $1"
 	fi

@@ -56,13 +56,21 @@ static int mod_init(void);
 /* module variables */
 add_event_t pres_add_event;
 
+/* module parameters */
+unsigned int pres_profile_default_expires = 3600;
+
+/* module exported parameters */
+static param_export_t params[] = {
+		{"default_expires", INT_PARAM, &pres_profile_default_expires},
+		{0, 0, 0}};
+
 /* module exports */
 /* clang-format off */
 struct module_exports exports= {
 	"presence_profile",	/* module name */
 	DEFAULT_DLFLAGS,	/* dlopen flags */
 	0,					/* exported functions */
-	0,					/* exported parameters */
+	params,				/* exported parameters */
 	0,					/* RPC method exports */
 	0,					/* exported pseudo-variables */
 	0,					/* response handling function */
@@ -80,18 +88,18 @@ static int mod_init(void)
 	presence_api_t pres;
 	bind_presence_t bind_presence;
 
-	bind_presence= (bind_presence_t)find_export("bind_presence", 1,0);
-	if (!bind_presence) {
+	bind_presence = (bind_presence_t)find_export("bind_presence", 1, 0);
+	if(!bind_presence) {
 		LM_ERR("can't bind presence\n");
 		return -1;
 	}
-	if (bind_presence(&pres) < 0) {
+	if(bind_presence(&pres) < 0) {
 		LM_ERR("can't bind pua\n");
 		return -1;
 	}
 
 	pres_add_event = pres.add_event;
-	if (pres_add_event == NULL) {
+	if(pres_add_event == NULL) {
 		LM_ERR("could not import add_event\n");
 		return -1;
 	}

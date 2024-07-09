@@ -20,11 +20,13 @@
 
 #include <sys/types.h>
 #include <string.h>
+#include <stdlib.h>
 #include <regex.h>
 #include <ctype.h>
 
 #include "parser/parse_uri.h"
 #include "parser/parse_param.h"
+#include "parser/parse_hname2.h"
 
 #include "dprint.h"
 #include "ut.h"
@@ -38,13 +40,11 @@ int escape_common(char *dst, char *src, int src_len)
 {
 	int i, j;
 
-	if(dst==0 || src==0 || src_len<=0)
+	if(dst == 0 || src == 0 || src_len <= 0)
 		return 0;
 	j = 0;
-	for(i=0; i<src_len; i++)
-	{
-		switch(src[i])
-		{
+	for(i = 0; i < src_len; i++) {
+		switch(src[i]) {
 			case '\'':
 				dst[j++] = '\\';
 				dst[j++] = src[i];
@@ -75,16 +75,13 @@ int unescape_common(char *dst, char *src, int src_len)
 {
 	int i, j;
 
-	if(dst==0 || src==0 || src_len<=0)
+	if(dst == 0 || src == 0 || src_len <= 0)
 		return 0;
 	j = 0;
 	i = 0;
-	while(i<src_len)
-	{
-		if(src[i]=='\\' && i+1<src_len)
-		{
-			switch(src[i+1])
-			{
+	while(i < src_len) {
+		if(src[i] == '\\' && i + 1 < src_len) {
+			switch(src[i + 1]) {
 				case '\'':
 					dst[j++] = '\'';
 					i++;
@@ -112,24 +109,83 @@ int unescape_common(char *dst, char *src, int src_len)
 	return j;
 }
 
+/*! \brief
+ * add backslashes for CR LF
+ */
+int escape_crlf(str *sin, str *sout)
+{
+	int i, j;
+
+	if(sout == 0 || sin == 0 || sin->len <= 0)
+		return -1;
+	j = 0;
+	for(i = 0; i < sin->len; i++) {
+		switch(sin->s[i]) {
+			case '\n':
+				sout->s[j++] = '\\';
+				sout->s[j++] = 'n';
+				break;
+			case '\r':
+				sout->s[j++] = '\\';
+				sout->s[j++] = 'r';
+				break;
+			default:
+				sout->s[j++] = sin->s[i];
+		}
+	}
+	sout->len = j;
+	return 0;
+}
+
+/*! \brief
+ * remove backslashes for CR LF
+ */
+int unescape_crlf(str *sin, str *sout)
+{
+	int i, j;
+
+	if(sout == 0 || sin == 0 || sin->len <= 0)
+		return -1;
+	j = 0;
+	i = 0;
+	while(i < sin->len) {
+		if(sin->s[i] == '\\' && i + 1 < sin->len) {
+			switch(sin->s[i + 1]) {
+				case 'n':
+					sout->s[j++] = '\n';
+					i++;
+					break;
+				case 'r':
+					sout->s[j++] = '\r';
+					i++;
+					break;
+				default:
+					sout->s[j++] = sin->s[i];
+			}
+		} else {
+			sout->s[j++] = sin->s[i];
+		}
+		i++;
+	}
+	sout->len = j;
+	return 0;
+}
+
 /*! \brief Unscape all printable ASCII characters */
 int unescape_user(str *sin, str *sout)
 {
 	char *at, *p, c;
 
-	if(sin==NULL || sout==NULL || sin->s==NULL || sout->s==NULL
-			|| sin->len<0 || sout->len < sin->len+1)
+	if(sin == NULL || sout == NULL || sin->s == NULL || sout->s == NULL
+			|| sin->len < 0 || sout->len < sin->len + 1)
 		return -1;
 
 	at = sout->s;
-	p  = sin->s;
-	while(p < sin->s+sin->len)
-	{
-	    if (*p == '%')
-		{
+	p = sin->s;
+	while(p < sin->s + sin->len) {
+		if(*p == '%') {
 			p++;
-			switch (*p)
-			{
+			switch(*p) {
 				case '0':
 				case '1':
 				case '2':
@@ -140,31 +196,30 @@ int unescape_user(str *sin, str *sout)
 				case '7':
 				case '8':
 				case '9':
-				    c = (*p - '0') << 4;
-			    break;
+					c = (*p - '0') << 4;
+					break;
 				case 'a':
 				case 'b':
 				case 'c':
 				case 'd':
 				case 'e':
 				case 'f':
-				    c = (*p - 'a' + 10) << 4;
-			    break;
+					c = (*p - 'a' + 10) << 4;
+					break;
 				case 'A':
 				case 'B':
 				case 'C':
 				case 'D':
 				case 'E':
 				case 'F':
-				    c = (*p - 'A' + 10) << 4;
-			    break;
+					c = (*p - 'A' + 10) << 4;
+					break;
 				default:
-				    LM_ERR("invalid hex digit <%u>\n", (unsigned int)*p);
-				    return -1;
+					LM_ERR("invalid hex digit <%u>\n", (unsigned int)*p);
+					return -1;
 			}
 			p++;
-			switch (*p)
-			{
+			switch(*p) {
 				case '0':
 				case '1':
 				case '2':
@@ -175,37 +230,36 @@ int unescape_user(str *sin, str *sout)
 				case '7':
 				case '8':
 				case '9':
-				    c =  c + (*p - '0');
-			    break;
+					c = c + (*p - '0');
+					break;
 				case 'a':
 				case 'b':
 				case 'c':
 				case 'd':
 				case 'e':
 				case 'f':
-				    c = c + (*p - 'a' + 10);
-			    break;
+					c = c + (*p - 'a' + 10);
+					break;
 				case 'A':
 				case 'B':
 				case 'C':
 				case 'D':
 				case 'E':
 				case 'F':
-				    c = c + (*p - 'A' + 10);
-			    break;
+					c = c + (*p - 'A' + 10);
+					break;
 				default:
-				    LM_ERR("invalid hex digit <%u>\n", (unsigned int)*p);
-				    return -1;
+					LM_ERR("invalid hex digit <%u>\n", (unsigned int)*p);
+					return -1;
 			}
-			if ((c < 32) || (c > 126))
-			{
-			    LM_ERR("invalid escaped character <%u>\n", (unsigned int)c);
-			    return -1;
+			if((c < 32) || (c > 126)) {
+				LM_ERR("invalid escaped character <%u>\n", (unsigned int)c);
+				return -1;
 			}
 			*at++ = c;
-	    } else {
+		} else {
 			*at++ = *p;
-	    }
+		}
 		p++;
 	}
 
@@ -230,26 +284,23 @@ int escape_user(str *sin, str *sout)
 	char *at, *p;
 	unsigned char x;
 
-	if(sin==NULL || sout==NULL || sin->s==NULL || sout->s==NULL
-			|| sin->len<0 || sout->len < 3*sin->len+1)
+	if(sin == NULL || sout == NULL || sin->s == NULL || sout->s == NULL
+			|| sin->len < 0 || sout->len < 3 * sin->len + 1)
 		return -1;
 
 
 	at = sout->s;
-	p  = sin->s;
-	while (p < sin->s+sin->len)
-	{
-	    if (*p < 32 || *p > 126)
-		{
+	p = sin->s;
+	while(p < sin->s + sin->len) {
+		if(*p < 32 || *p > 126) {
 			LM_ERR("invalid escaped character <%u>\n", (unsigned int)*p);
 			return -1;
-	    }
-	    if (isdigit((int)*p) || ((*p >= 'A') && (*p <= 'Z')) ||
-				((*p >= 'a') && (*p <= 'z')))
-		{
+		}
+		if(isdigit((int)*p) || ((*p >= 'A') && (*p <= 'Z'))
+				|| ((*p >= 'a') && (*p <= 'z'))) {
 			*at = *p;
-	    } else {
-			switch (*p) {
+		} else {
+			switch(*p) {
 				case '-':
 				case '_':
 				case '.':
@@ -266,27 +317,26 @@ int escape_user(str *sin, str *sout)
 				case ',':
 				case ';':
 				case '?':
-				    *at = *p;
-				break;
+					*at = *p;
+					break;
 				default:
-				    *at++ = '%';
-				    x = (unsigned char)(*p) >> 4;
-				    if (x < 10)
-					{
+					*at++ = '%';
+					x = (unsigned char)(*p) >> 4;
+					if(x < 10) {
 						*at++ = x + '0';
-				    } else {
+					} else {
 						*at++ = x - 10 + 'a';
-				    }
-				    x = (*p) & 0x0f;
-				    if (x < 10) {
+					}
+					x = (*p) & 0x0f;
+					if(x < 10) {
 						*at = x + '0';
-				    } else {
+					} else {
 						*at = x - 10 + 'a';
-				    }
+					}
 			}
-	    }
-	    at++;
-	    p++;
+		}
+		at++;
+		p++;
 	}
 	*at = 0;
 	sout->len = at - sout->s;
@@ -297,7 +347,7 @@ int escape_user(str *sin, str *sout)
 
 int unescape_param(str *sin, str *sout)
 {
-    return unescape_user(sin, sout);
+	return unescape_user(sin, sout);
 }
 
 
@@ -311,118 +361,116 @@ int unescape_param(str *sin, str *sout)
  */
 int escape_param(str *sin, str *sout)
 {
-    char *at, *p;
-    unsigned char x;
+	char *at, *p;
+	unsigned char x;
 
-    if (sin==NULL || sout==NULL || sin->s==NULL || sout->s==NULL ||
-        sin->len<0 || sout->len < 3*sin->len+1)
-        return -1;
+	if(sin == NULL || sout == NULL || sin->s == NULL || sout->s == NULL
+			|| sin->len < 0 || sout->len < 3 * sin->len + 1)
+		return -1;
 
-    at = sout->s;
-    p  = sin->s;
-    while (p < sin->s+sin->len) {
-        if (*p < 32 || *p > 126) {
-            LM_ERR("invalid escaped character <%u>\n", (unsigned int)*p);
-            return -1;
-        } else if (isdigit((int)*p) || ((*p >= 'A') && (*p <= 'Z')) ||
-                ((*p >= 'a') && (*p <= 'z'))) {
-            *at = *p;
-        } else {
-            switch (*p) {
-                case '-':
-                case '_':
-                case '.':
-                case '!':
-                case '~':
-                case '*':
-                case '\'':
-                case '(':
-                case ')':
-                case '[':
-                case ']':
-                case '/':
-                case ':':
-                case '&':
-                case '+':
-                case '$':
-                    *at = *p;
-                    break;
-                default:
+	at = sout->s;
+	p = sin->s;
+	while(p < sin->s + sin->len) {
+		if(*p < 32 || *p > 126) {
+			LM_ERR("invalid escaped character <%u>\n", (unsigned int)*p);
+			return -1;
+		} else if(isdigit((int)*p) || ((*p >= 'A') && (*p <= 'Z'))
+				  || ((*p >= 'a') && (*p <= 'z'))) {
+			*at = *p;
+		} else {
+			switch(*p) {
+				case '-':
+				case '_':
+				case '.':
+				case '!':
+				case '~':
+				case '*':
+				case '\'':
+				case '(':
+				case ')':
+				case '[':
+				case ']':
+				case '/':
+				case ':':
+				case '&':
+				case '+':
+				case '$':
+					*at = *p;
+					break;
+				default:
 
-                    *at++ = '%';
-                    x = (unsigned char)(*p) >> 4;
-                    if (x < 10)
-                    {
-                        *at++ = x + '0';
-                    } else {
-                        *at++ = x - 10 + 'a';
-                    }
-                    x = (*p) & 0x0f;
-                    if (x < 10) {
-                        *at = x + '0';
-                    } else {
-                        *at = x - 10 + 'a';
-                    }
-                    break;
-            }
-        }
-        at++;
-        p++;
-    }
-    *at = 0;
-    sout->len = at - sout->s;
-    LM_DBG("escaped string is <%s>\n", sout->s);
+					*at++ = '%';
+					x = (unsigned char)(*p) >> 4;
+					if(x < 10) {
+						*at++ = x + '0';
+					} else {
+						*at++ = x - 10 + 'a';
+					}
+					x = (*p) & 0x0f;
+					if(x < 10) {
+						*at = x + '0';
+					} else {
+						*at = x - 10 + 'a';
+					}
+					break;
+			}
+		}
+		at++;
+		p++;
+	}
+	*at = 0;
+	sout->len = at - sout->s;
+	LM_DBG("escaped string is <%s>\n", sout->s);
 
-    return 0;
+	return 0;
 }
 
 /*! \brief
  * escapes a string to use as a CSV field, as specified in RFC4180:
- * - enclose sting in double quotes
+ * - enclose string in double quotes
  * - escape double quotes with a second double quote
  */
 int escape_csv(str *sin, str *sout)
 {
-    char *at, *p;
+	char *at, *p;
 
-    if (sin==NULL || sout==NULL || sin->s==NULL || sout->s==NULL ||
-        sin->len<0 || sout->len < 2*sin->len+3)
-        return -1;
+	if(sin == NULL || sout == NULL || sin->s == NULL || sout->s == NULL
+			|| sin->len < 0 || sout->len < 2 * sin->len + 3)
+		return -1;
 
-    at = sout->s;
-    p  = sin->s;
-    *at++ = '"';
-    while (p < sin->s+sin->len) {
+	at = sout->s;
+	p = sin->s;
+	*at++ = '"';
+	while(p < sin->s + sin->len) {
 		if(*p == '"') {
 			*at++ = '"';
 		}
-        *at++ = *p++;
-    }
-    *at++ = '"';
-    *at = 0;
-    sout->len = at - sout->s;
-    LM_DBG("escaped string is <%s>\n", sout->s);
+		*at++ = *p++;
+	}
+	*at++ = '"';
+	*at = 0;
+	sout->len = at - sout->s;
+	LM_DBG("escaped string is <%s>\n", sout->s);
 
-    return 0;
+	return 0;
 }
 
 int cmp_str(str *s1, str *s2)
 {
 	int ret = 0;
 	int len = 0;
-	if(s1->len==0 && s2->len==0)
+	if(s1->len == 0 && s2->len == 0)
 		return 0;
-	if(s1->len==0)
+	if(s1->len == 0)
 		return -1;
-	if(s2->len==0)
+	if(s2->len == 0)
 		return 1;
-	len = (s1->len<s2->len)?s1->len:s2->len;
+	len = (s1->len < s2->len) ? s1->len : s2->len;
 	ret = strncmp(s1->s, s2->s, len);
-	if(ret==0)
-	{
-		if(s1->len==s2->len)
+	if(ret == 0) {
+		if(s1->len == s2->len)
 			return 0;
-		if(s1->len<s2->len)
+		if(s1->len < s2->len)
 			return -1;
 		return 1;
 	}
@@ -433,19 +481,18 @@ int cmpi_str(str *s1, str *s2)
 {
 	int ret = 0;
 	int len = 0;
-	if(s1->len==0 && s2->len==0)
+	if(s1->len == 0 && s2->len == 0)
 		return 0;
-	if(s1->len==0)
+	if(s1->len == 0)
 		return -1;
-	if(s2->len==0)
+	if(s2->len == 0)
 		return 1;
-	len = (s1->len<s2->len)?s1->len:s2->len;
+	len = (s1->len < s2->len) ? s1->len : s2->len;
 	ret = strncasecmp(s1->s, s2->s, len);
-	if(ret==0)
-	{
-		if(s1->len==s2->len)
+	if(ret == 0) {
+		if(s1->len == s2->len)
 			return 0;
-		if(s1->len<s2->len)
+		if(s1->len < s2->len)
 			return -1;
 		return 1;
 	}
@@ -455,48 +502,86 @@ int cmpi_str(str *s1, str *s2)
 int cmp_hdrname_str(str *s1, str *s2)
 {
 	str n1, n2;
+	hdr_field_t hf1, hf2;
+
 	n1 = *s1;
 	n2 = *s2;
 	trim_trailing(&n1);
 	trim_trailing(&n2);
-	/* todo: parse hdr name and compare with short/long alternative */
+
+	parse_hname2_str(&n1, &hf1);
+	parse_hname2_str(&n2, &hf2);
+	if(hf1.type == HDR_ERROR_T || hf2.type == HDR_ERROR_T) {
+		LM_ERR("error parsing header names [%.*s] [%.*s]\n", n1.len, n1.s,
+				n2.len, n2.s);
+		return -4;
+	}
+
+	if(hf1.type != HDR_OTHER_T) {
+		if(hf1.type == hf2.type) {
+			return 0;
+		} else {
+			return 2;
+		}
+	} else if(hf2.type != HDR_OTHER_T) {
+		return 2;
+	}
 	return cmpi_str(&n1, &n2);
 }
 
 int cmp_hdrname_strzn(str *s1, char *s2, size_t len)
 {
 	str n1, n2;
+	hdr_field_t hf1, hf2;
+
 	n1 = *s1;
 	n2.s = s2;
 	n2.len = len;
 	trim_trailing(&n1);
 	trim_trailing(&n2);
+
+	parse_hname2_str(&n1, &hf1);
+	parse_hname2_str(&n2, &hf2);
+	if(hf1.type == HDR_ERROR_T || hf2.type == HDR_ERROR_T) {
+		LM_ERR("error parsing header names [%.*s] [%.*s]\n", n1.len, n1.s,
+				n2.len, n2.s);
+		return -4;
+	}
+
+	if(hf1.type != HDR_OTHER_T) {
+		if(hf1.type == hf2.type) {
+			return 0;
+		} else {
+			return 2;
+		}
+	} else if(hf2.type != HDR_OTHER_T) {
+		return 2;
+	}
 	return cmpi_str(&n1, &n2);
 }
 
 int cmp_str_params(str *s1, str *s2)
 {
-	param_t* pl1 = NULL;
+	param_t *pl1 = NULL;
 	param_hooks_t phooks1;
-	param_t *pit1=NULL;
-	param_t* pl2 = NULL;
+	param_t *pit1 = NULL;
+	param_t *pl2 = NULL;
 	param_hooks_t phooks2;
-	param_t *pit2=NULL;
+	param_t *pit2 = NULL;
 
-	if (parse_params(s1, CLASS_ANY, &phooks1, &pl1)<0)
+	if(parse_params(s1, CLASS_ANY, &phooks1, &pl1) < 0)
 		return -1;
-	if (parse_params(s2, CLASS_ANY, &phooks2, &pl2)<0)
+	if(parse_params(s2, CLASS_ANY, &phooks2, &pl2) < 0)
 		return -1;
-	for (pit1 = pl1; pit1; pit1=pit1->next)
-	{
-		for (pit2 = pl2; pit2; pit2=pit2->next)
-		{
-			if (pit1->name.len==pit2->name.len
-				&& strncasecmp(pit1->name.s, pit2->name.s, pit2->name.len)==0)
-			{
-				if(pit1->body.len!=pit2->body.len
-						|| strncasecmp(pit1->body.s, pit2->body.s,
-							pit2->body.len)!=0)
+	for(pit1 = pl1; pit1; pit1 = pit1->next) {
+		for(pit2 = pl2; pit2; pit2 = pit2->next) {
+			if(pit1->name.len == pit2->name.len
+					&& strncasecmp(pit1->name.s, pit2->name.s, pit2->name.len)
+							   == 0) {
+				if(pit1->body.len != pit2->body.len
+						|| strncasecmp(
+								   pit1->body.s, pit2->body.s, pit2->body.len)
+								   != 0)
 					return 1;
 			}
 		}
@@ -513,21 +598,20 @@ int cmp_str_params(str *s1, str *s2)
  */
 int cmp_uri_mode(struct sip_uri *uri1, struct sip_uri *uri2, int cmode)
 {
-	if(uri1->type!=uri2->type)
+	if(uri1->type != uri2->type)
 		return 1;
 	/* quick check for length */
-	if(uri1->user.len!=uri2->user.len
-			|| uri1->host.len!=uri2->host.len
-			|| uri1->port.len!=uri2->port.len
-			|| uri1->passwd.len!=uri2->passwd.len)
+	if(uri1->user.len != uri2->user.len || uri1->host.len != uri2->host.len
+			|| uri1->port.len != uri2->port.len
+			|| uri1->passwd.len != uri2->passwd.len)
 		return 1;
-	if(cmp_str(&uri1->user, &uri2->user)!=0)
+	if(cmp_str(&uri1->user, &uri2->user) != 0)
 		return 1;
-	if(cmp_str(&uri1->port, &uri2->port)!=0)
+	if(cmp_str(&uri1->port, &uri2->port) != 0)
 		return 1;
-	if(cmp_str(&uri1->passwd, &uri2->passwd)!=0)
+	if(cmp_str(&uri1->passwd, &uri2->passwd) != 0)
 		return 1;
-	if(cmpi_str(&uri1->host, &uri2->host)!=0)
+	if(cmpi_str(&uri1->host, &uri2->host) != 0)
 		return 1;
 	if(cmode == 1) {
 		/* compare mode light - proto should be the same for match */
@@ -537,28 +621,26 @@ int cmp_uri_mode(struct sip_uri *uri1, struct sip_uri *uri2, int cmode)
 		return 1;
 	}
 	/* if no params, we are done */
-	if(uri1->params.len==0 && uri2->params.len==0)
+	if(uri1->params.len == 0 && uri2->params.len == 0)
 		return 0;
-	if(uri1->params.len==0)
-	{
-		if(uri2->user_param.len!=0)
+	if(uri1->params.len == 0) {
+		if(uri2->user_param.len != 0)
 			return 1;
-		if(uri2->ttl.len!=0)
+		if(uri2->ttl.len != 0)
 			return 1;
-		if(uri2->method.len!=0)
+		if(uri2->method.len != 0)
 			return 1;
-		if(uri2->maddr.len!=0)
+		if(uri2->maddr.len != 0)
 			return 1;
 	}
-	if(uri2->params.len==0)
-	{
-		if(uri1->user_param.len!=0)
+	if(uri2->params.len == 0) {
+		if(uri1->user_param.len != 0)
 			return 1;
-		if(uri1->ttl.len!=0)
+		if(uri1->ttl.len != 0)
 			return 1;
-		if(uri1->method.len!=0)
+		if(uri1->method.len != 0)
 			return 1;
-		if(uri1->maddr.len!=0)
+		if(uri1->maddr.len != 0)
 			return 1;
 	}
 	return cmp_str_params(&uri1->params, &uri2->params);
@@ -600,9 +682,9 @@ int cmp_uri_str(str *s1, str *s2)
 	struct sip_uri uri2;
 
 	/* todo: parse uri and compare the parts */
-	if(parse_uri(s1->s, s1->len, &uri1)!=0)
+	if(parse_uri(s1->s, s1->len, &uri1) != 0)
 		return -1;
-	if(parse_uri(s2->s, s2->len, &uri2)!=0)
+	if(parse_uri(s2->s, s2->len, &uri2) != 0)
 		return -1;
 	return cmp_uri(&uri1, &uri2);
 }
@@ -619,9 +701,9 @@ int cmp_uri_light_str(str *s1, str *s2)
 	struct sip_uri uri2;
 
 	/* todo: parse uri and compare the parts */
-	if(parse_uri(s1->s, s1->len, &uri1)!=0)
+	if(parse_uri(s1->s, s1->len, &uri1) != 0)
 		return -1;
-	if(parse_uri(s2->s, s2->len, &uri2)!=0)
+	if(parse_uri(s2->s, s2->len, &uri2) != 0)
 		return -1;
 	return cmp_uri_light(&uri1, &uri2);
 }
@@ -637,19 +719,17 @@ int cmp_uri_light_str(str *s1, str *s2)
 int cmp_aor(struct sip_uri *uri1, struct sip_uri *uri2)
 {
 	/* quick check for length */
-	if(uri1->user.len!=uri2->user.len
-			|| uri1->host.len!=uri2->host.len)
+	if(uri1->user.len != uri2->user.len || uri1->host.len != uri2->host.len)
 		return 1;
-	if(cmp_str(&uri1->user, &uri2->user)!=0)
+	if(cmp_str(&uri1->user, &uri2->user) != 0)
 		return 1;
-	if(cmp_str(&uri1->port, &uri2->port)!=0)
-	{
-		if(uri1->port.len==0 && uri2->port_no!=5060)
+	if(cmp_str(&uri1->port, &uri2->port) != 0) {
+		if(uri1->port.len == 0 && uri2->port_no != 5060)
 			return 1;
-		if(uri2->port.len==0 && uri1->port_no!=5060)
+		if(uri2->port.len == 0 && uri1->port_no != 5060)
 			return 1;
 	}
-	if(cmpi_str(&uri1->host, &uri2->host)!=0)
+	if(cmpi_str(&uri1->host, &uri2->host) != 0)
 		return 1;
 	return 0;
 }
@@ -666,9 +746,9 @@ int cmp_aor_str(str *s1, str *s2)
 	struct sip_uri uri2;
 
 	/* todo: parse uri and compare the parts */
-	if(parse_uri(s1->s, s1->len, &uri1)!=0)
+	if(parse_uri(s1->s, s1->len, &uri1) != 0)
 		return -1;
-	if(parse_uri(s2->s, s2->len, &uri2)!=0)
+	if(parse_uri(s2->s, s2->len, &uri2) != 0)
 		return -1;
 	return cmp_aor(&uri1, &uri2);
 }
@@ -676,22 +756,23 @@ int cmp_aor_str(str *s1, str *s2)
 /*! \brief Replace in replacement tokens \\d with substrings of string pointed by
  * pmatch.
  */
-int replace(regmatch_t* pmatch, char* string, char* replacement, str* result)
+int replace(regmatch_t *pmatch, char *string, char *replacement, str *result)
 {
 	int len, i, j, digit, size;
 
 	len = strlen(replacement);
 	j = 0;
 
-	for (i = 0; i < len; i++) {
-		if (replacement[i] == '\\') {
-			if (i < len - 1) {
-				if (isdigit((unsigned char)replacement[i+1])) {
-					digit = replacement[i+1] - '0';
-					if (pmatch[digit].rm_so != -1) {
+	for(i = 0; i < len; i++) {
+		if(replacement[i] == '\\') {
+			if(i < len - 1) {
+				if(isdigit((unsigned char)replacement[i + 1])) {
+					digit = replacement[i + 1] - '0';
+					if(pmatch[digit].rm_so != -1) {
 						size = pmatch[digit].rm_eo - pmatch[digit].rm_so;
-						if (j + size < result->len) {
-							memcpy(&(result->s[j]), string+pmatch[digit].rm_so, size);
+						if(j + size < result->len) {
+							memcpy(&(result->s[j]),
+									string + pmatch[digit].rm_so, size);
 							j = j + size;
 						} else {
 							return -1;
@@ -708,7 +789,7 @@ int replace(regmatch_t* pmatch, char* string, char* replacement, str* result)
 				return -3;
 			}
 		}
-		if (j + 1 < result->len) {
+		if(j + 1 < result->len) {
 			result->s[j] = replacement[i];
 			j = j + 1;
 		} else {
@@ -727,14 +808,14 @@ int reg_match(char *pattern, char *string, regmatch_t *pmatch)
 {
 	regex_t preg;
 
-	if (regcomp(&preg, pattern, REG_EXTENDED | REG_NEWLINE)) {
+	if(regcomp(&preg, pattern, REG_EXTENDED | REG_NEWLINE)) {
 		return -1;
 	}
-	if (preg.re_nsub > SR_RE_MAX_MATCH) {
+	if(preg.re_nsub > SR_RE_MAX_MATCH) {
 		regfree(&preg);
 		return -2;
 	}
-	if (regexec(&preg, string, SR_RE_MAX_MATCH, pmatch, 0)) {
+	if(regexec(&preg, string, SR_RE_MAX_MATCH, pmatch, 0)) {
 		regfree(&preg);
 		return -3;
 	}
@@ -750,15 +831,14 @@ int reg_replace(char *pattern, char *replacement, char *string, str *result)
 {
 	regmatch_t pmatch[SR_RE_MAX_MATCH];
 
-	LM_DBG("pattern: '%s', replacement: '%s', string: '%s'\n",
-	    pattern, replacement, string);
+	LM_DBG("pattern: '%s', replacement: '%s', string: '%s'\n", pattern,
+			replacement, string);
 
-	if (reg_match(pattern, string, &(pmatch[0]))) {
+	if(reg_match(pattern, string, &(pmatch[0]))) {
 		return -1;
 	}
 
 	return replace(&pmatch[0], string, replacement, result);
-
 }
 
 /* Converts a hex character to its integer value */
@@ -781,19 +861,19 @@ int urlencode(str *sin, str *sout)
 {
 	char *at, *p;
 
-	if (sin==NULL || sout==NULL || sin->s==NULL || sout->s==NULL ||
-			sin->len<0 || sout->len < 3*sin->len+1)
+	if(sin == NULL || sout == NULL || sin->s == NULL || sout->s == NULL
+			|| sin->len < 0 || sout->len < 3 * sin->len + 1)
 		return -1;
 
 	at = sout->s;
 	p = sin->s;
 
-	while (p < sin->s+sin->len) {
-		if (isalnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == '~')
+	while(p < sin->s + sin->len) {
+		if(isalnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == '~')
 			*at++ = *p;
 		else
 			*at++ = '%', *at++ = char_to_hex((unsigned char)(*p) >> 4),
-				*at++ = char_to_hex(*p & 15);
+			*at++ = char_to_hex(*p & 15);
 		p++;
 	}
 
@@ -814,13 +894,13 @@ int urldecode(str *sin, str *sout)
 	at = sout->s;
 	p = sin->s;
 
-	while (p < sin->s+sin->len) {
-		if (*p == '%') {
-			if (p[1] && p[2]) {
+	while(p < sin->s + sin->len) {
+		if(*p == '%') {
+			if(p[1] && p[2]) {
 				*at++ = hex_to_char(p[1]) << 4 | hex_to_char(p[2]);
 				p += 2;
 			}
-		} else if (*p == '+') {
+		} else if(*p == '+') {
 			*at++ = ' ';
 		} else {
 			*at++ = *p;
@@ -833,4 +913,84 @@ int urldecode(str *sin, str *sout)
 
 	LM_DBG("urldecoded string is <%s>\n", sout->s);
 	return 0;
+}
+
+/*! \brief
+ *  escape input string to prepare it for use as json value
+ */
+void ksr_str_json_escape(str *s_in, str *s_out, int *emode)
+{
+	char *p1, *p2;
+	int len = 0;
+	char token;
+	int i;
+
+	s_out->len = 0;
+	if(!s_in || !s_in->s) {
+		s_out->s = strdup("");
+		*emode = 1;
+		return;
+	}
+	for(i = 0; i < s_in->len; i++) {
+		if(strchr("\"\\\b\f\n\r\t", s_in->s[i])) {
+			len += 2;
+		} else if(s_in->s[i] < 32) {
+			len += 6;
+		} else {
+			len++;
+		}
+	}
+	if(len == s_in->len) {
+		s_out->s = s_in->s;
+		s_out->len = s_in->len;
+		*emode = 0;
+		return;
+	}
+
+	s_out->s = (char *)malloc(len + 2);
+	if(!s_out->s) {
+		return;
+	}
+	*emode = 1;
+
+	p2 = s_out->s;
+	p1 = s_in->s;
+	while(p1 < s_in->s + s_in->len) {
+		if((unsigned char)*p1 > 31 && *p1 != '\"' && *p1 != '\\') {
+			*p2++ = *p1++;
+		} else {
+			*p2++ = '\\';
+			switch(token = *p1++) {
+				case '\\':
+					*p2++ = '\\';
+					break;
+				case '\"':
+					*p2++ = '\"';
+					break;
+				case '\b':
+					*p2++ = 'b';
+					break;
+				case '\f':
+					*p2++ = 'f';
+					break;
+				case '\n':
+					*p2++ = 'n';
+					break;
+				case '\r':
+					*p2++ = 'r';
+					break;
+				case '\t':
+					*p2++ = 't';
+					break;
+				default:
+					/* escape and print */
+					snprintf(p2, 6, "u%04x", token);
+					p2 += 5;
+					break;
+			}
+		}
+	}
+	*p2++ = 0;
+	s_out->len = len;
+	return;
 }

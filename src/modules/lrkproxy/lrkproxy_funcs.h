@@ -24,11 +24,12 @@
 
 
 #include "../../core/str.h"
+#include "../../core/pvar.h"
 #include "../../core/parser/msg_parser.h"
 #include "../../core/parser/contact/contact.h"
 
-int extract_body(struct sip_msg * , str *);
-int check_content_type(struct sip_msg * );
+int extract_body(struct sip_msg *, str *);
+int check_content_type(struct sip_msg *);
 int get_callid(struct sip_msg *, str *);
 int get_to_tag(struct sip_msg *, str *);
 int get_from_tag(struct sip_msg *, str *);
@@ -36,6 +37,7 @@ int get_contact_uri(struct sip_msg *, struct sip_uri *, contact_t **);
 int get_via_branch(struct sip_msg *, int, str *);
 int get_sdp_ipaddr_media(struct sip_msg *msg, str *ip_addr);
 int get_sdp_port_media(struct sip_msg *msg, str *port);
+void init_custom_sdp_ip(pv_spec_t *custom_sdp_ip_avp_p);
 
 
 #endif //_LRKPROXY_FUNCS_H

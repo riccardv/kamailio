@@ -45,16 +45,15 @@ int profile_add_events(void)
 	event.name.s = "ua-profile";
 	event.name.len = 10;
 
-
 	event.content_type.s = "text/xml";
 	event.content_type.len = 8;
 
-	event.default_expires= 3600;
+	event.default_expires = pres_profile_default_expires;
 	event.type = PUBL_TYPE;
 	event.req_auth = 0;
 	event.evs_publ_handl = 0;
 
-	if (pres_add_event(&event) < 0) {
+	if(pres_add_event(&event) < 0) {
 		LM_ERR("failed to add event \"ua-profile\"\n");
 		return -1;
 	}

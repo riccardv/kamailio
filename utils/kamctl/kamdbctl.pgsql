@@ -20,7 +20,7 @@
 # 2006-10-19  Added address table (bogdan)
 # 2006-10-27  subscriber table cleanup; some columns are created only if
 #             serweb is installed (bogdan)
-# 2007-01-26  added seperate installation routine for presence related tables
+# 2007-01-26  added separate installation routine for presence related tables
 #             and fix permissions for the SERIAL sequences.
 # 2007-05-21  Move SQL database definitions out of this script (henning)
 # 2007-05-31  Move common definitions to kamdbctl.base file (henningw)
@@ -51,12 +51,12 @@ if [ -z "$DBROOTUSER" ]; then
 	fi
 fi
 
-if [ -z "$DBPORT" ] ; then
-	CMD="psql -q -h $DBHOST -U $DBROOTUSER "
-	DUMP_CMD="pg_dump -h $DBHOST -U $DBROOTUSER -c"
+if [ -z "$DBROOTPORT" ] ; then
+	CMD="psql -q -h $DBROOTHOST -U $DBROOTUSER "
+	DUMP_CMD="pg_dump -h $DBROOTHOST -U $DBROOTUSER -c"
 else
-	CMD="psql -q -h $DBHOST -p $DBPORT -U $DBROOTUSER "
-	DUMP_CMD="pg_dump -h $DBHOST -p $DBPORT -U $DBROOTUSER -c"
+	CMD="psql -q -h $DBROOTHOST -p $DBROOTPORT -U $DBROOTUSER "
+	DUMP_CMD="pg_dump -h $DBROOTHOST -p $DBROOTPORT -U $DBROOTUSER -c"
 fi
 
 #################################################################

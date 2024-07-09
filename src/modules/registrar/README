@@ -87,14 +87,16 @@ Bogdan-Andre Iancu
               4.2. lookup(domain [, uri])
               4.3. lookup_to_dset(domain [, uri])
               4.4. lookup_branches(domain)
-              4.5. registered(domain [, uri [, match_option [,
+              4.5. lookup_xavp(ultable, uri, rxname, cxname)
+              4.6. registered(domain [, uri [, match_option [,
                       match_action]]])
 
-              4.6. add_sock_hdr(hdr_name)
-              4.7. unregister(domain, uri[, ruid])
-              4.8. reg_fetch_contacts(domain, uri, profile)
-              4.9. reg_free_contacts(profile)
-              4.10. reg_send_reply()
+              4.7. add_sock_hdr(hdr_name)
+              4.8. unregister(domain, uri[, ruid])
+              4.9. reg_fetch_contacts(domain, uri, profile)
+              4.10. reg_free_contacts(profile)
+              4.11. reg_send_reply()
+              4.12. reg_from_user(ultable, uri, mode)
 
         5. Event Routes
 
@@ -154,14 +156,16 @@ Bogdan-Andre Iancu
    1.36. lookup usage
    1.37. lookup_to_dset usage
    1.38. lookup_branches usage
-   1.39. registered usage
-   1.40. add_sock_hdr usage
-   1.41. unregister usage
-   1.42. reg_fetch_contacts usage
-   1.43. reg_free_contacts usage
-   1.44. reg_send_reply usage
-   1.45. event_route[usrloc:contact-expired] usage
-   1.46. $ulc(name) usage
+   1.39. lookup_xavp usage
+   1.40. registered usage
+   1.41. add_sock_hdr usage
+   1.42. unregister usage
+   1.43. reg_fetch_contacts usage
+   1.44. reg_free_contacts usage
+   1.45. reg_send_reply usage
+   1.46. reg_from_user usage
+   1.47. event_route[usrloc:contact-expired] usage
+   1.48. $ulc(name) usage
 
 Chapter 1. Admin Guide
 
@@ -221,12 +225,14 @@ Chapter 1. Admin Guide
         4.2. lookup(domain [, uri])
         4.3. lookup_to_dset(domain [, uri])
         4.4. lookup_branches(domain)
-        4.5. registered(domain [, uri [, match_option [, match_action]]])
-        4.6. add_sock_hdr(hdr_name)
-        4.7. unregister(domain, uri[, ruid])
-        4.8. reg_fetch_contacts(domain, uri, profile)
-        4.9. reg_free_contacts(profile)
-        4.10. reg_send_reply()
+        4.5. lookup_xavp(ultable, uri, rxname, cxname)
+        4.6. registered(domain [, uri [, match_option [, match_action]]])
+        4.7. add_sock_hdr(hdr_name)
+        4.8. unregister(domain, uri[, ruid])
+        4.9. reg_fetch_contacts(domain, uri, profile)
+        4.10. reg_free_contacts(profile)
+        4.11. reg_send_reply()
+        4.12. reg_from_user(ultable, uri, mode)
 
    5. Event Routes
 
@@ -285,7 +291,7 @@ Chapter 1. Admin Guide
 
    GRUU (RFC5627) is supported with both public and temporary addresses.
 
-   The public GRUU is build based on the '+sip.instance' UUID parameter as
+   The public GRUU is built based on the '+sip.instance' UUID parameter as
    recommended by RFC.
 
    The temporary GRUU is built based on internal SRUID (unique id
@@ -473,11 +479,11 @@ modparam("registrar", "realm_prefix", "sip.")
    The parameter controls how lookup function processes multiple contacts.
    If there are multiple contacts for the given username in usrloc and
    this parameter is set to 1, Request-URI will be overwritten with the
-   highest-q rated contact and the rest will be appended to sip_msg
-   structure and can be later used by tm for forking. If the parameter is
-   set to 0, only Request-URI will be overwritten with the highest-q rated
-   contact and the rest will be left unprocessed. This parameter can be
-   modified via Kamailio config framework.
+   highest-q rated contact. The rest will be appended to sip_msg structure
+   and can be later used by tm for forking. If the parameter is set to 0,
+   only Request-URI will be overwritten with the highest-q rated contact
+   and the rest will be left unprocessed. This parameter can be modified
+   via Kamailio config framework.
 
    Default value is 1.
 
@@ -640,7 +646,7 @@ modparam("registrar", "method_filtering", 1)
 
 3.20. use_path (integer)
 
-   If set to 1, the “Path:” header is handled according to the parameter
+   If set to 1, the “Path:” header is handled according to the parameter.
    This parameter can be modified via Kamailio config framework.
    “path_mode”.
 
@@ -680,7 +686,7 @@ modparam("registrar", "path_mode", 0)
    registration is set as received-uri and the NAT branch flag is set for
    this contact. This is useful if the registrar is placed behind a SIP
    loadbalancer, which passes the nat'ed UAC address as “received”
-   parameter in it's Path uri.
+   parameter in its Path uri.
 
    Default value is 0 (disabled).
 
@@ -725,17 +731,26 @@ modparam("registrar", "reg_callid_avp", "$avp(s:avp)")
    Defines the name of XAVP class to store runtime module config values.
    The values are stored as inner XAVPs, like $xavp(class=>attribute).
    Valid inner XAVP names:
-     * expires - the number of maximum contacts to be stored for the
-       current registration AoR. It overwrites the 'max_contacts' module
-       parameter value.
-     * q - the expires value, to overwrite the value from SIP headers.
+     * match_callid - filter contacts by callid. Used in registered().
+     * match_contact - filter contacts by contact. Used in registered().
+     * match_received - filter contacts by received. Used in registered().
+     * rlf_bflags - filter contacts by branch flags. Used in lookup().
+     * q - q value of contact (integer 0-1000). It overrides q value given
+       in contact header and default_q parameter. Used in save().
+     * expires - the expires value, to overwrite the value from SIP
+       headers. Used in save().
      * max_contacts - the number of maximum contacts to be stored for the
        current registration AoR. It overwrites the 'max_contacts' module
-       parameter value.
+       parameter value. Used in save().
      * socket - the string representing the socket on which the register
-       request was received, as alternative to using the sock_hdr.
+       request was received, as alternative to using the sock_hdr. Used in
+       save().
+     * tcpconn_id This can be set with $conid, the TCP connection ID of
+       the connection the current message. This is useful when calling
+       save() on a reply route to set the connecion of the original
+       request. Used in save().
 
-   For example. if this parameter is set to 'reg', then the number of
+   For example if this parameter is set to 'reg', then the number of
    maximum contacts can be set in $xavp(reg=>max_contacts).
 
    Default value is NULL (disabled).
@@ -935,6 +950,9 @@ end
        with branch flags matching at least one set inside xavp specified
        by xavp_cfg parameter with inner name rlf_bflags - e.g.,
        $xavp(reg=>rlf_bflags).
+     * 2 - apply the active tcp connection filter - return only contact
+       records that have the associated TCP/TLS/WSS connection active. UDP
+       and SCTP contacts are not filtered, all are returned.
 
    Default value is NULL (disabled).
 
@@ -973,12 +991,14 @@ kamcmd cfg.set_now_int registrar use_expired_contacts 0
    4.2. lookup(domain [, uri])
    4.3. lookup_to_dset(domain [, uri])
    4.4. lookup_branches(domain)
-   4.5. registered(domain [, uri [, match_option [, match_action]]])
-   4.6. add_sock_hdr(hdr_name)
-   4.7. unregister(domain, uri[, ruid])
-   4.8. reg_fetch_contacts(domain, uri, profile)
-   4.9. reg_free_contacts(profile)
-   4.10. reg_send_reply()
+   4.5. lookup_xavp(ultable, uri, rxname, cxname)
+   4.6. registered(domain [, uri [, match_option [, match_action]]])
+   4.7. add_sock_hdr(hdr_name)
+   4.8. unregister(domain, uri[, ruid])
+   4.9. reg_fetch_contacts(domain, uri, profile)
+   4.10. reg_free_contacts(profile)
+   4.11. reg_send_reply()
+   4.12. reg_from_user(ultable, uri, mode)
 
 4.1.  save(domain, [, flags [, uri]])
 
@@ -1006,18 +1026,20 @@ kamcmd cfg.set_now_int registrar use_expired_contacts 0
             AoR (user).
           + 0x08 - Do not apply expires_range or default_expires_range to
             this registration.
+          + 0x10 - prepare the headers for reply, used only if flag 0x02
+            is set.
        The flags may be given in decimal or hexadecimal format.
      * uri (optional - flags param has to be set and can be 0 for default
-       behavior) - SIP URI to do be used instead of To header URI. It can
-       be a dynamic string with pseudo-variables.
+       behavior) - SIP URI to be used instead of To header URI. It can be
+       a dynamic string with pseudo-variables.
 
    Return codes:
      * -2 - error, too many contacts for AOR.
-       -1 - error.
-       1 - contacts inserted.
-       2 - contacts updated.
-       3 - contacts deleted.
-       4 - contacts returned.
+     * -1 - error.
+     * 1 - contacts inserted.
+     * 2 - contacts updated.
+     * 3 - contacts deleted.
+     * 4 - contacts returned.
 
    This function can be used from REQUEST_ROUTE, FAILURE_ROUTE and
    REPLY_ROUTE.
@@ -1045,14 +1067,14 @@ save("location", "0x00", "sip:test@kamailio.org");
 
    Meaning of the parameters is as follows:
      * domain - Name of table that should be used for the lookup.
-     * uri (optional) - SIP URI to do be used instead of R-URI. It can be
-       a dynamic string with pseudo-variables.
+     * uri (optional) - SIP URI to be used instead of R-URI. It can be a
+       dynamic string with pseudo-variables.
 
    Return codes:
      * 1 - contacts found and returned.
-       -1 - no contact found.
-       -2 - contacts found, but method not supported.
-       -3 - internal error during processing.
+     * -1 - no contact found.
+     * -2 - contacts found, but method not supported.
+     * -3 - internal error during processing.
 
    This function can be used from REQUEST_ROUTE, FAILURE_ROUTE.
 
@@ -1102,20 +1124,49 @@ lookup_to_dset("location");
 lookup_branches("location");
 ...
 
-4.5.  registered(domain [, uri [, match_option [, match_action]]])
+4.5.  lookup_xavp(ultable, uri, rxname, cxname)
+
+   Similar to lookup(...), but store the location record attributes in
+   XAVPs. Note that not all contact record fields are stored
+
+   Meaning of the parameters:
+     * ultable - name of the usrloc table that is used for the lookup.
+     * uri - the URI to be searched in location table.
+     * rxname - name of the XAVP to store record attributes. These are:
+          + aor - the address of record.
+     * cxname - name of the XAVP to store content attributes, name mapping
+       is done from the perspective of using them to send out SIP
+       requests. These are:
+          + uri - the contact address.
+          + socket - the socket of the contact record.
+          + dsturi - the destination uri of the contact record (the
+            received field in location contact).
+
+   This function can be used from ANY_ROUTE.
+
+   Example 1.39. lookup_xavp usage
+...
+lookup_xavp("location", "$fu", "rul", "cul");
+xinfo("aor: $xavp(rul=>aor)\n");
+xinfo("number of contacts: $xavp(rul>count)\n");
+xinfo("first contact record - uri: $xavp(cul>uri)\n");
+xinfo("first contact record - socket: $xavp(cul>socket)\n");
+...
+
+4.6.  registered(domain [, uri [, match_option [, match_action]]])
 
    The function returns true if the AOR in the URI is registered, false
-   otherwise. The function does not modify the message being process, it
+   otherwise. The function does not modify the message being processed, it
    neither rewrites the Request-URI if a contact is found nor append
    branches. If uri parameter is not provided, then it considered to be
    the Request-URI for SIP requests and To-URI for SIP replies.
 
    Meaning of the parameters is as follows:
      * domain - Name of table that should be used for the lookup.
-     * uri (optional) - SIP URI to do be used instead of Request/To-URI.
-       It can be a dynamic string with pseudo-variables.
+     * uri (optional) - SIP URI to be used instead of Request/To-URI. It
+       can be a dynamic string with pseudo-variables.
      * match_option (optional) - flag parameter to restrict contact
-       search. use reg_xavp_cfg to set the values to compare to.
+       search. use xavp_cfg to set the values to compare to.
        flag values is as follows:
           + 1 - match_callid
           + 2 - match_received
@@ -1129,7 +1180,7 @@ lookup_branches("location");
 
    This function can be used from ANY_ROUTE.
 
-   Example 1.39. registered usage
+   Example 1.40. registered usage
 ...
 if (registered("location")) {
         sl_send_reply("100", "Trying");
@@ -1143,7 +1194,7 @@ if (registered("location","$rz:$Au", 2)) {
 };
 ...
 
-4.6.  add_sock_hdr(hdr_name)
+4.7.  add_sock_hdr(hdr_name)
 
    Adds a new header to the current REGISTER request with “hdr_name” which
    contains the description of the received socket (proto:ip:port)
@@ -1156,12 +1207,12 @@ if (registered("location","$rz:$Au", 2)) {
 
    This function can be used from REQUEST_ROUTE.
 
-   Example 1.40. add_sock_hdr usage
+   Example 1.41. add_sock_hdr usage
 ...
 add_sock_hdr("Sock-Info");
 ...
 
-4.7.  unregister(domain, uri[, ruid])
+4.8.  unregister(domain, uri[, ruid])
 
    The function removes contacts associated with 'uri' from the location
    database. If 'ruid' is provided a specific contact is removed, if
@@ -1175,7 +1226,7 @@ add_sock_hdr("Sock-Info");
      * uri - The SIP URI address of the user which to remove the contact
        addresses for. It can contain pseudo-variables that are evaluated
        at runtime.
-     * ruid - The record unique ID for a a specific contact to be removed.
+     * ruid - The record unique ID for a specific contact to be removed.
        It can contain pseudo-variables that are evaluated at runtime.
 
    This function can be used from ANY_ROUTE.
@@ -1186,7 +1237,7 @@ add_sock_hdr("Sock-Info");
      * -2 - Error in unregistering user
      * -3 - Contacts for AOR not found
 
-   Example 1.41. unregister usage
+   Example 1.42. unregister usage
 ...
 unregister("location", "$ru");
 unregister("location", "sip:user@kamailio.org");
@@ -1194,7 +1245,7 @@ unregister("location", "$ru", "$ulc(caller=>ruid)");
 unregister("location", "", "$ruid");
 ...
 
-4.8.  reg_fetch_contacts(domain, uri, profile)
+4.9.  reg_fetch_contacts(domain, uri, profile)
 
    The function fetches the contacts for 'uri' from table 'domain' to
    pseudo-variable $ulc(profile).
@@ -1210,13 +1261,13 @@ unregister("location", "", "$ruid");
 
    This function can be used from REQUEST_ROUTE, FAILURE_ROUTE.
 
-   Example 1.42. reg_fetch_contacts usage
+   Example 1.43. reg_fetch_contacts usage
 ...
 reg_fetch_contacts("location", "$ru", "callee");
 reg_fetch_contacts("location", "sip:user@kamailio.org", "caller");
 ...
 
-4.9.  reg_free_contacts(profile)
+4.10.  reg_free_contacts(profile)
 
    The function frees the contacts from pseudo-variable $ulc(profile).
    Should be called to release the content of a profile. Anyhow, fetching
@@ -1229,12 +1280,12 @@ reg_fetch_contacts("location", "sip:user@kamailio.org", "caller");
 
    This function can be used from REQUEST_ROUTE, FAILURE_ROUTE.
 
-   Example 1.43. reg_free_contacts usage
+   Example 1.44. reg_free_contacts usage
 ...
 reg_free_contacts("callee");
 ...
 
-4.10.  reg_send_reply()
+4.11.  reg_send_reply()
 
    The function sends the SIP reply that is normally sent by save(...),
    but that was skipped due to flag 0x2. It must be used after save(...,
@@ -1243,11 +1294,35 @@ reg_free_contacts("callee");
 
    This function can be used from REQUEST_ROUTE, FAILURE_ROUTE.
 
-   Example 1.44. reg_send_reply usage
+   Example 1.45. reg_send_reply usage
 ...
 save("location", "0x2");
 ...
 reg_send_reply();
+...
+
+4.12.  reg_from_user(ultable, uri, mode)
+
+   The function returns true if the SIP message comes from the user
+   identified by 'uri' parameter by matching the associated location
+   records. The matching is done with the field 'received' if it is set,
+   otherwise with the contact address.
+
+   Meaning of the parameters is as follows:
+     * ultable - user location table (e.g., 'location')
+     * uri - SIP URI to identify the location records to match against.
+     * mode - matching mode (int) - host part (IP address) is matched
+       always. If mode has bit 1 set (value 1), then the port is matched
+       as well. If mode has bit 2 set (value 2), then the protocol is
+       matched as well.
+
+   This function can be used from ANY_ROUTE.
+
+   Example 1.46. reg_from_user usage
+...
+if(reg_from_user("location", "sip:alice@server.com", "0")) {
+    # message coming from where 'alice' sent before a REGISTER request
+}
 ...
 
 5. Event Routes
@@ -1259,7 +1334,7 @@ reg_send_reply();
    Executed when a contact in location table has expired. The variable
    $ulc(exp=>...) is filled with the attributes of the expired contact.
 
-   Example 1.45. event_route[usrloc:contact-expired] usage
+   Example 1.47. event_route[usrloc:contact-expired] usage
 ...
 event_route[usrloc:contact-expired] {
     xlog("expired contact for $ulc(exp=>aor)\n");
@@ -1333,7 +1408,7 @@ event_route[usrloc:contact-expired] {
    The pseudo-variable accepts positive index value to access a specific
    contact record.
 
-   Example 1.46. $ulc(name) usage
+   Example 1.48. $ulc(name) usage
 ...
 if(reg_fetch_contacts("location", "$fu", "caller"))
 {
@@ -1411,9 +1486,11 @@ Chapter 2. Frequently Asked Questions
    First at all check if your question was already answered on one of our
    mailing lists:
      * User Mailing List -
-       https://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-users
+       https://lists.kamailio.org/mailman3/postorius/lists/sr-users.lists.
+       kamailio.org/
      * Developer Mailing List -
-       https://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-dev
+       https://lists.kamailio.org/mailman3/postorius/lists/sr-dev.lists.ka
+       mailio.org/
 
    E-mails regarding any stable Kamailio release should be sent to
    <sr-users@lists.kamailio.org> and e-mails regarding development

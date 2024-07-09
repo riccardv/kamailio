@@ -1,5 +1,5 @@
 /*
- * SNMPStats Module 
+ * SNMPStats Module
  * Copyright (C) 2006 SOMA Networks, INC.
  * Written by: Jeffrey Magder (jmagder@somanetworks.com)
  *
@@ -158,5 +158,8 @@ int set_snmpget_path(modparam_t type, void *val);
 
 /*! Handles setting of the snmp community string. */
 int set_snmp_community(modparam_t type, void *val);
+
+/*! Handles setting of the snmp version. */
+int set_snmp_version(modparam_t type, void *val);
 
 #endif

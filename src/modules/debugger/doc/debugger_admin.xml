@@ -29,7 +29,7 @@
 	</para>
 	<para>
 		The framework to set breakpoints on specific actions and config lines
-		is not exported to RPC. Each action can be accompanied by an
+		is not exported to RPC. Each action can be accompanied by a
 		breakpoint or you can use dbg_breakpoint() function to set a breakpoint
 		at certain line. Global breakpoints can be enabled/disabled at runtime.
 		The script running trace can also be enabled/disabled at runtime.
@@ -96,6 +96,29 @@
 		<programlisting format="linespecific">
 ...
 modparam("debugger", "cfgtrace", 1)
+...
+</programlisting>
+	    </example>
+	</section>
+
+	<section id="dbg.p.cfgtrace_format">
+	    <title><varname>cfgtrace_format</varname> (int)</title>
+	    <para>
+			Control what is printer in the cfgtrace log message. If it is set
+			to 1, then the configuration file path is not printed, making
+			the log messages shorter when not including other configuration
+			files in the main one.
+	    </para>
+	    <para>
+		<emphasis>
+		    Default value is <quote>0</quote>.
+		</emphasis>
+	    </para>
+	    <example>
+		<title>Set <varname>cfgtrace_format</varname> parameter</title>
+		<programlisting format="linespecific">
+...
+modparam("debugger", "cfgtrace_format", 1)
 ...
 </programlisting>
 	    </example>
@@ -252,9 +275,9 @@ modparam("debugger", "step_loops", 100)
 	    <title><varname>mod_hash_size</varname> (int)</title>
 	    <para>
 		Used to compute power of two as size of internal hash table to store levels
-		per module (e.g., if its set to 4, internal hash table has 16 slots). One
-		must set it's value grater than 0 such that memory to be allocated
-		to save the module specific debug levels or facility configured by 
+		per module (e.g., if it is set to 4, internal hash table has 16 slots). One
+		must set its value grater than 0 such that memory to be allocated
+		to save the module specific debug levels or facility configured by
 		<varname>mod_level</varname> or <varname>mod_facility</varname>.
 		This parameter is accessible readonly via the Kamailio config framework.
 	    </para>
@@ -454,7 +477,7 @@ modparam("debugger", "cfgtest", 1)
 	    </title>
 	    <para>
 			Anchor a breakpoint at the current line of the config (the one
-			on which this function is called). The 'mode' specifies whether 
+			on which this function is called). The 'mode' specifies whether
 			the breakpoint is enabled (1) or disabled (0) at startup.
 	    </para>
 		<para>
@@ -693,7 +716,7 @@ P-Hint: My hint
 			the list of available values.</para>
 		</listitem>
 		<listitem><para>_pid_ : process id for which to apply the command.
-				If 'pid' is omitted, then the inner command will be applied 
+				If 'pid' is omitted, then the inner command will be applied
 				to all processes.</para>
 		</listitem>
 		<listitem><para>_params_ : extra params specific for each command.</para>

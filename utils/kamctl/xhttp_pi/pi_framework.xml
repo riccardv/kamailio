@@ -20,7 +20,7 @@
 		DB1_STR,      /**< represents a string of 'str' type        */
 		DB1_DATETIME, /**< represents date and time                 */
 		DB1_BLOB,     /**< represents a large binary object         */
-		DB1_BITMAP    /**< an one-dimensional array of 32 flags     */
+		DB1_BITMAP    /**< a one-dimensional array of 32 flags     */
 			/* validation */
 		P_HOST_PORT  /**< represents [proto:]host[:port]       */
 		P_IPV4_PORT  /**< represents [proto:]IPv4[:port]       */
@@ -1003,13 +1003,13 @@
 		- a 'cmd_type': c  q  o
 		Each cmd_type can have:
 		- 'clause_cols' used to specify one or multiple clauses
-		- 'query_cols' used for perfoming the actual query
+		- 'query_cols' used for performing the actual query
 		- 'order_by_cols' used to specify sorting output
 		Each clause_cols will have 'col' elemnts.
 		Each col will have:
 		- a mandatory 'field' identifying the name of the field
-		- an optional 'value' identifing the given value
-		- an optional 'link_cmd' identifing the update cmd with prepared values
+		- an optional 'value' identifying the given value
+		- an optional 'link_cmd' identifying the update cmd with prepared values
 			* only for query_cols for DB1_QUERY commands
 		- a mandatory 'operator' only for 'clause_cols'
 		The [clause|query|order_by]_cols can be:

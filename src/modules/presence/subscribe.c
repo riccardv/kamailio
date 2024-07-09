@@ -56,6 +56,11 @@ static str pu_500_rpl = str_init("Server Internal Error");
 static str pu_489_rpl = str_init("Bad Event");
 static str pu_423_rpl = str_init("Interval Too Brief");
 
+static int get_ok_reply_code()
+{
+	return pres_subs_respond_200 ? 200 : 202;
+}
+
 static int send_2XX_reply(sip_msg_t *msg, int reply_code, unsigned int lexpire,
 		str *local_contact)
 {
@@ -119,7 +124,7 @@ static int send_2XX_reply(sip_msg_t *msg, int reply_code, unsigned int lexpire,
 		goto error;
 	}
 
-	if(slb.freply(msg, reply_code, &su_200_rpl) < 0) {
+	if(_pres_slb.freply(msg, reply_code, &su_200_rpl) < 0) {
 		LM_ERR("sending reply\n");
 		goto error;
 	}
@@ -490,7 +495,8 @@ void delete_subs(
 		}
 	}
 
-	if(pres_subs_dbmode != NO_DB && delete_db_subs(to_tag, from_tag, callid) < 0)
+	if(pres_subs_dbmode != NO_DB
+			&& delete_db_subs(to_tag, from_tag, callid) < 0)
 		LM_ERR("Failed to delete subscription from database\n");
 }
 
@@ -498,13 +504,14 @@ int update_subscription_notifier(
 		struct sip_msg *msg, subs_t *subs, int to_tag_gen, int *sent_reply)
 {
 	int num_peers = 0;
+	int reply_code;
 
 	*sent_reply = 0;
 
 	/* Set the notifier/update fields for the subscription */
 	subs->updated = core_case_hash(&subs->callid, &subs->from_tag, 0)
 					% (pres_waitn_time * pres_notifier_poll_rate
-							  * pres_notifier_processes);
+							* pres_notifier_processes);
 	if(subs->event->type & WINFO_TYPE)
 		subs->updated_winfo = UPDATED_TYPE;
 	else if(subs->event->wipeer) {
@@ -539,11 +546,10 @@ int update_subscription_notifier(
 		}
 	}
 
-	if(send_2XX_reply(msg, subs->event->type & PUBL_TYPE ? 202 : 200,
-			   subs->expires, &subs->local_contact)
+	reply_code = subs->event->type & PUBL_TYPE ? get_ok_reply_code() : 200;
+	if(send_2XX_reply(msg, reply_code, subs->expires, &subs->local_contact)
 			< 0) {
-		LM_ERR("sending %d response\n",
-				subs->event->type & PUBL_TYPE ? 202 : 200);
+		LM_ERR("sending %d response\n", reply_code);
 		goto error;
 	}
 	*sent_reply = 1;
@@ -558,6 +564,7 @@ int update_subscription(
 		struct sip_msg *msg, subs_t *subs, int to_tag_gen, int *sent_reply)
 {
 	unsigned int hash_code;
+	int reply_code;
 
 	LM_DBG("update subscription\n");
 	printf_subs(subs);
@@ -573,9 +580,11 @@ int update_subscription(
 					&subs->from_tag, &subs->callid);
 
 			if(subs->event->type & PUBL_TYPE) {
-				if(send_2XX_reply(msg, 202, subs->expires, &subs->local_contact)
+				reply_code = get_ok_reply_code();
+				if(send_2XX_reply(
+						   msg, reply_code, subs->expires, &subs->local_contact)
 						< 0) {
-					LM_ERR("sending 202 OK\n");
+					LM_ERR("sending %d OK\n", reply_code);
 					goto error;
 				}
 				*sent_reply = 1;
@@ -626,8 +635,9 @@ int update_subscription(
 		if(subs->expires != 0) {
 			if(pres_subs_dbmode != DB_ONLY) {
 				LM_DBG("inserting in shtable\n");
-				subs->db_flag = (pres_subs_dbmode == WRITE_THROUGH) ? WTHROUGHDB_FLAG
-															   : INSERTDB_FLAG;
+				subs->db_flag = (pres_subs_dbmode == WRITE_THROUGH)
+										? WTHROUGHDB_FLAG
+										: INSERTDB_FLAG;
 				hash_code = core_case_hash(
 						&subs->pres_uri, &subs->event->name, shtable_size);
 				subs->version = 0;
@@ -637,7 +647,8 @@ int update_subscription(
 				}
 			}
 
-			if(pres_subs_dbmode == DB_ONLY || pres_subs_dbmode == WRITE_THROUGH) {
+			if(pres_subs_dbmode == DB_ONLY
+					|| pres_subs_dbmode == WRITE_THROUGH) {
 				subs->version = 1;
 				if(insert_subs_db(subs, REMOTE_TYPE) < 0) {
 					LM_ERR("failed to insert new record in database\n");
@@ -656,8 +667,10 @@ int update_subscription(
 	/* reply_and_notify  */
 
 	if(subs->event->type & PUBL_TYPE) {
-		if(send_2XX_reply(msg, 202, subs->expires, &subs->local_contact) < 0) {
-			LM_ERR("sending 202 OK reply\n");
+		reply_code = get_ok_reply_code();
+		if(send_2XX_reply(msg, reply_code, subs->expires, &subs->local_contact)
+				< 0) {
+			LM_ERR("sending %d OK\n", reply_code);
 			goto error;
 		}
 		*sent_reply = 1;
@@ -969,7 +982,8 @@ int pv_get_subscription(struct sip_msg *msg, pv_param_t *param, pv_value_t *res)
 	} else if(param->pvn.u.isname.name.n == 23) {
 		return pv_get_strval(msg, param, res, &_pres_subs_last_sub->user_agent);
 	} else if(param->pvn.u.isname.name.n == 24) {
-		return pv_get_strval(msg, param, res, &_pres_subs_last_sub->sockinfo_str);
+		return pv_get_strval(
+				msg, param, res, &_pres_subs_last_sub->sockinfo_str);
 	}
 
 	LM_ERR("unknown specifier\n");
@@ -982,7 +996,7 @@ int handle_subscribe0(struct sip_msg *msg)
 
 	if(parse_from_uri(msg) == NULL) {
 		LM_ERR("failed to find From header\n");
-		if(slb.freply(msg, 400, &pu_400_rpl) < 0) {
+		if(_pres_slb.freply(msg, 400, &pu_400_rpl) < 0) {
 			LM_ERR("while sending 400 reply\n");
 			return -1;
 		}
@@ -1041,7 +1055,7 @@ int handle_subscribe(struct sip_msg *msg, str watcher_user, str watcher_domain)
 	str reply_str;
 	int sent_reply = 0;
 
-	if(_pres_subs_mode==1) {
+	if(_pres_subs_mode == 1) {
 		if(_pres_subs_last_sub) {
 			pkg_free(_pres_subs_last_sub);
 			_pres_subs_last_sub = NULL;
@@ -1195,7 +1209,7 @@ int handle_subscribe(struct sip_msg *msg, str watcher_user, str watcher_domain)
 		}
 	}
 
-	if(_pres_subs_mode==1) {
+	if(_pres_subs_mode == 1) {
 		_pres_subs_last_sub = mem_copy_subs(&subs, PKG_MEM_TYPE);
 	}
 
@@ -1297,7 +1311,7 @@ int extract_sdialog_info_ex(subs_t *subs, struct sip_msg *msg, uint32_t miexp,
 	str rec_route = {0, 0};
 	int rt = 0;
 	contact_body_t *b;
-	struct to_body *pto, TO = {0}, *pfrom = NULL;
+	struct to_body *pto, tob = {0}, *pfrom = NULL;
 	uint32_t lexpire;
 	str rtag_value;
 	struct sip_uri uri;
@@ -1346,12 +1360,13 @@ int extract_sdialog_info_ex(subs_t *subs, struct sip_msg *msg, uint32_t miexp,
 		LM_DBG("'To' header ALREADY PARSED: <%.*s>\n", pto->uri.len,
 				pto->uri.s);
 	} else {
-		parse_to(msg->to->body.s, msg->to->body.s + msg->to->body.len + 1, &TO);
-		if(TO.uri.len <= 0) {
+		parse_to(
+				msg->to->body.s, msg->to->body.s + msg->to->body.len + 1, &tob);
+		if(tob.uri.len <= 0) {
 			LM_DBG("'To' header NOT parsed\n");
 			goto error;
 		}
-		pto = &TO;
+		pto = &tob;
 	}
 
 	if(pto->parsed_uri.user.s && pto->parsed_uri.host.s
@@ -1403,7 +1418,8 @@ int extract_sdialog_info_ex(subs_t *subs, struct sip_msg *msg, uint32_t miexp,
 		LM_DBG("generating to_tag\n");
 		*to_tag_gen = 1;
 		rtag_value.len = 0;
-		if(slb.get_reply_totag(msg, &rtag_value) < 0 || rtag_value.len <= 0) {
+		if(_pres_slb.get_reply_totag(msg, &rtag_value) < 0
+				|| rtag_value.len <= 0) {
 			LM_ERR("while creating to_tag\n");
 			goto error;
 		}
@@ -1503,11 +1519,11 @@ int extract_sdialog_info_ex(subs_t *subs, struct sip_msg *msg, uint32_t miexp,
 	}
 	getbflagsval(0, &subs->flags);
 
-	free_to_params(&TO);
+	free_to_params(&tob);
 	return 0;
 
 error:
-	free_to_params(&TO);
+	free_to_params(&tob);
 	return -1;
 }
 
@@ -1516,8 +1532,9 @@ int extract_sdialog_info(subs_t *subs, struct sip_msg *msg, int mexp,
 {
 	int reply_code = 500;
 	str reply_str = pu_500_rpl;
-	return extract_sdialog_info_ex(subs, msg, pres_min_expires, mexp, to_tag_gen,
-			scontact, watcher_user, watcher_domain, &reply_code, &reply_str);
+	return extract_sdialog_info_ex(subs, msg, pres_min_expires, mexp,
+			to_tag_gen, scontact, watcher_user, watcher_domain, &reply_code,
+			&reply_str);
 }
 
 int get_stored_info(
@@ -1841,7 +1858,8 @@ void update_db_subs_timer_notifier(void)
 	query_cols[n_query_cols] = &str_expires_col;
 	query_vals[n_query_cols].type = DB1_INT;
 	query_vals[n_query_cols].nul = 0;
-	query_vals[n_query_cols].val.int_val = (int)time(NULL) - pres_expires_offset;
+	query_vals[n_query_cols].val.int_val =
+			(int)time(NULL) - pres_expires_offset;
 	query_ops[n_query_cols] = OP_LT;
 	n_query_cols++;
 
@@ -2640,7 +2658,7 @@ int restore_db_subs(void)
 			s.sockinfo_str.s = (char *)row_vals[sockinfo_col].val.string_val;
 			s.sockinfo_str.len = strlen(s.sockinfo_str.s);
 			s.db_flag = (pres_subs_dbmode == WRITE_THROUGH) ? WTHROUGHDB_FLAG
-													   : NO_UPDATEDB_FLAG;
+															: NO_UPDATEDB_FLAG;
 			hash_code =
 					core_case_hash(&s.pres_uri, &s.event->name, shtable_size);
 			if(insert_shtable(subs_htable, hash_code, &s) < 0) {
@@ -2758,7 +2776,7 @@ error:
 
 static int ps_get_subs_auth(subs_t *subs, int *found)
 {
-	if(pa_db==NULL) {
+	if(pa_db == NULL) {
 		/* expecting the cache only mode -- watchers considered active */
 		subs->reason.s = NULL;
 		subs->status = ACTIVE_STATUS;
@@ -2853,7 +2871,7 @@ error:
 
 static int ps_insert_subs_auth(subs_t *subs)
 {
-	if(pa_db==NULL) {
+	if(pa_db == NULL) {
 		/* expecting the cache only mode
 		 * - no insert, watchers considered active */
 		return 0;

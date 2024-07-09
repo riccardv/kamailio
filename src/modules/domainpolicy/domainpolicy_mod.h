@@ -15,8 +15,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
@@ -38,7 +38,7 @@
 
 /*!
  * Version of gw and lcr tables required by the module, increment this value
- * if you change the table in an backwards incompatible way
+ * if you change the table in a backwards incompatible way
  */
 #define DOMAINPOLICY_TABLE_VERSION 2
 
@@ -46,19 +46,19 @@
 /*
  * Module parameters variables
  */
-extern str domainpolicy_table;		/*!< Domainpolicy table name */
-extern str domainpolicy_col_rule;   	/*!< Rule column name */
-extern str domainpolicy_col_type;   	/*!< Type column name */
-extern str domainpolicy_col_att;   	/*!< Attribute column name */
-extern str domainpolicy_col_val;   	/*!< Value column name */
+extern str domainpolicy_table;	  /*!< Domainpolicy table name */
+extern str domainpolicy_col_rule; /*!< Rule column name */
+extern str domainpolicy_col_type; /*!< Type column name */
+extern str domainpolicy_col_att;  /*!< Attribute column name */
+extern str domainpolicy_col_val;  /*!< Value column name */
 
 
 /*
  * Other module variables
  */
-extern int_str port_override_name, transport_override_name, 
-		domain_prefix_name, domain_suffix_name, domain_replacement_name,
-		send_socket_name, target_name;
+extern int_str port_override_name, transport_override_name, domain_prefix_name,
+		domain_suffix_name, domain_replacement_name, send_socket_name,
+		target_name;
 
 extern unsigned short port_override_avp_name_str;
 extern unsigned short transport_override_avp_name_str;

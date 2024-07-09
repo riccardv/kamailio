@@ -16,14 +16,8 @@
 	<section>
 	<title>Overview</title>
 	<para>
-	This module implement various functions and checks related to SIP message
+	This module implements various functions and checks related to SIP message
 	handling and URI handling.
-	</para>
-	<para>
-	It offers some functions related to handle ringing. In a parallel forking
-	scenario you get several 183s with SDP. You don't want that your customers
-	hear more than one ringtone or answer machine in parallel on the phone.
-	So its necessary to drop the 183 in this cases and send a 180 instead.
 	</para>
 	<para>
 	This module also provides a function to answer OPTIONS requests which
@@ -72,33 +66,13 @@
 
 	<section>
 		<title>Parameters</title>
-		<section id="siputils.p.ring_timeout">
-			<title><varname>ring_timeout</varname> (int)</title>
-			<para>
-			Timeout value in seconds, define how long the call-id is stored in the internal list kept for replacing 183 messages  with 180.
-			A reasonable value is <quote>30</quote>.
-			</para>
-			<para>
-			<emphasis>
-				Default value is <quote>0</quote>. This means functionality is disabled.
-			</emphasis>
-			</para>
-			<example>
-			<title>Set <varname>ring_timeout</varname> parameter</title>
-				<programlisting format="linespecific">
-...
-modparam("siputils", "ring_timeout", 30)
-...
-				</programlisting>
-			</example>
-		</section>
 		<section id="siputils.p.options_accept">
 		<title><varname>options_accept</varname> (string)</title>
 		<para>
 			This parameter is the content of the Accept header field.
 			Note: it is not clearly written in RFC3261 if a proxy should
-			accept any content (the default <quote>*/*</quote>) because 
-			it does not care about content. Or if it does not accept 
+			accept any content (the default <quote>*/*</quote>) because
+			it does not care about content. Or if it does not accept
 			any content, which is <quote></quote>.
 		</para>
 		<para>
@@ -119,7 +93,7 @@ modparam("siputils", "options_accept", "application/*")
 		<title><varname>options_accept_encoding</varname> (string)</title>
 		<para>
 			This parameter is the content of the Accept-Encoding header field.
-			Please do not change the default value because &kamailio; 
+			Please do not change the default value because &kamailio;
 			does not support any encodings yet.
 		</para>
 		<para>
@@ -140,13 +114,13 @@ modparam("siputils", "options_accept_encoding", "gzip")
 		<section id="siputils.p.contact_flds_separator">
 		<title><varname>contact_flds_separator</varname> (string)</title>
 		<para>
-		First char of this parameter is used as separator for encoding/decoding 
+		First char of this parameter is used as separator for encoding/decoding
 		Contact header.
 		</para>
 		<warning>
 		<para>
-			First char of this field must be set to a value which is not used 
-			inside username,password or other fields of contact. Otherwise it 
+			First char of this field must be set to a value which is not used
+			inside username, password or other fields of contact. Otherwise it
 			is possible for the decoding step to fail/produce wrong results.
 		</para>
 		</warning>
@@ -164,7 +138,7 @@ modparam("siputils", "contact_flds_separator", "-")
 </programlisting>
 		</example>
 		<para>
-		then an encoded uri might look 
+		then an encoded uri might look
 		sip:user-password-ip-port-protocol@PublicIP
 		</para>
 	</section>
@@ -174,9 +148,9 @@ modparam("siputils", "contact_flds_separator", "-")
 		<title><varname>options_accept_language</varname> (string)</title>
 		<para>
 			This parameter is the content of the Accept-Language header field.
-			You can set any language code which you prefer for error 
+			You can set any language code which you prefer for error
 			descriptions from other devices, but presumably there are not
-			many devices around which support other languages than the 
+			many devices around which support other languages than the
 			default English.
 		</para>
 		<para>
@@ -198,7 +172,7 @@ modparam("siputils", "options_accept_language", "de")
 		<para>
 			This parameter is the content of the Support header field,
 			indicating SIP extensions.
-			Please do not change the default value, because &kamailio; currently 
+			Please do not change the default value, because &kamailio; currently
 			does not support any of the SIP extensions registered at the IANA.
 		</para>
 		<para>
@@ -218,7 +192,7 @@ modparam("siputils", "options_support", "100rel")
 	<section id="siputils.p.rpid_prefix">
 		<title><varname>rpid_prefix</varname> (string)</title>
 		<para>
-		Prefix to be added to Remote-Party-ID header field just before 
+		Prefix to be added to Remote-Party-ID header field just before
 		the URI returned from either radius or database.
 		</para>
 		<para>
@@ -227,37 +201,37 @@ modparam("siputils", "options_support", "100rel")
 		<example>
 		<title>rpid_prefix parameter example</title>
 		<programlisting format="linespecific">
-modparam("auth", "rpid_prefix", "Whatever &lt;")
+modparam("siputils", "rpid_prefix", "Whatever &lt;")
 </programlisting>
 		</example>
 	</section>
 	<section id="siputils.p.rpid_suffix">
 		<title><varname>rpid_suffix</varname> (string)</title>
 		<para>
-		Suffix to be added to Remote-Party-ID header field after the URI 
+		Suffix to be added to Remote-Party-ID header field after the URI
 		returned from either radius or database.
 		</para>
 		<para>
-		Default value is 
+		Default value is
 			<quote>;party=calling;id-type=subscriber;screen=yes</quote>.
 		</para>
 		<example>
 		<title>rpid_suffix parameter example</title>
 		<programlisting format="linespecific">
-modparam("auth", "rpid_suffix", "@1.2.3.4>")
+modparam("siputils", "rpid_suffix", "@1.2.3.4>")
 </programlisting>
 		</example>
 	</section>
 	<section id="siputils.p.rpid_avp">
 		<title><varname>rpid_avp</varname> (string)</title>
 		<para>
-			Full AVP specification for the AVP which 
+			Full AVP specification for the AVP which
 			stores the RPID value. It used to transport the RPID value from
 			authentication backend modules (auth_db or auth_radius) or from
 			script to the auth function append_rpid_hf and is_rpid_user_e164.
 		</para>
 		<para>
-			If defined to NULL string, all RPID functions will fail at 
+			If defined to NULL string, all RPID functions will fail at
 			runtime.
 		</para>
 		<para>
@@ -266,48 +240,37 @@ modparam("auth", "rpid_suffix", "@1.2.3.4>")
 		<example>
 		<title>rpid_avp parameter example</title>
 		<programlisting format="linespecific">
-modparam("auth", "rpid_avp", "$avp(myrpid)")
+modparam("siputils", "rpid_avp", "$avp(myrpid)")
 		</programlisting>
+		</example>
+	</section>
+	<section id="siputils.p.e164_max_len">
+		<title><varname>e164_max_len</varname> (int)</title>
+		<para>
+		The maximum length for checking e164 numbers, including the leading '+'.
+		</para>
+		<para>
+		Default value is <quote>16</quote>.
+		</para>
+		<example>
+		<title>e164_max_len parameter example</title>
+		<programlisting format="linespecific">
+modparam("siputils", "e164_max_len", 20)
+</programlisting>
 		</example>
 	</section>
 	</section>
 
 	<section>
 	<title>Functions</title>
-		<section id="siputils.f.ring_insert_callid">
-			<title>
-				<function moreinfo="none">ring_insert_callid()</function>
-			</title>
-			<para>
-			Inserting the call-id in the internal list, which is checked when
-			further replies arrive. Any 183 reply that is received during the
-			timeout value will be converted to a 180 message with removed SDP body.
-			Please note that you need to set a positive ring_timeout value in order
-			to use this function.
-			</para>
-			<para>
-			The function returns TRUE on success, and FALSE during processing failures.
-			</para>
-			<para>
-			This function can be used from REQUEST_ROUTE and FAILURE_ROUTE.
-			</para>
-			<example>
-				<title><function>ring_insert_callid()</function> usage</title>
-				<programlisting format="linespecific">
-...
-ring_insert_callid();
-...
-				</programlisting>
-			</example>
-	</section>
 	<section id="siputils.f.options_reply">
 		<title>
 		<function moreinfo="none">options_reply()</function>
 		</title>
 		<para>
 			This function checks if the request method is OPTIONS and
-			if the request URI does not contain an username. If both
-			is true the request will be answered stateless with 
+			if the request URI does not contain a username. If both
+			are true the request will be answered stateless with
 			<quote>200 OK</quote> and the capabilities from the modules
 			parameters.
 		</para>
@@ -320,8 +283,8 @@ ring_insert_callid();
 			optional because it is also done by the function itself. But
 			you should not call this function outside the myself check
 			because in this case the function could answer OPTIONS requests
-			which are sent to you as outbound proxy but with an other
-			destination then your proxy (this check is currently missing
+			which are sent to you as outbound proxy but with another
+			destination than your proxy (this check is currently missing
 			in the function).
 		</para>
 		<para>
@@ -420,7 +383,7 @@ if (uri_param("param1")) {
 	</section>
 	<section id="siputils.f.uri_param_value">
 		<title>
-		<function moreinfo="none">uri_param(param,value)</function>
+		<function moreinfo="none">uri_param(param, value)</function>
 		</title>
 		<para>
 		Find if Request URI has a given parameter with matching value
@@ -576,13 +539,15 @@ if (uri_param_rm("param1")) {
 		<para>
 		The conversion follows the rules in RFC 3261 section 19.1.6:
 		<itemizedlist>
-                <listitem>
-                        <para>Visual separators ( "-", ".", "(", ")" ) are removed from tel URI number before converting it to SIP URI userinfo.</para>
+        <listitem>
+			<para>Visual separators ( "-", ".", "(", ")" ) are removed
+			from tel URI number before converting it to SIP URI userinfo.</para>
 		</listitem>
 		<listitem>
-			<para>tel URI parameters are downcased before appending them to SIP URI userinfo</para>
-                </listitem>
-                </itemizedlist>
+			<para>tel URI parameters are downcased before appending them
+			to SIP URI userinfo</para>
+        </listitem>
+        </itemizedlist>
 		</para>
 		<para>
 		The SIP URI hostpart is taken from second param
@@ -605,6 +570,36 @@ tel2sip("$ru", $fd", "$ru");
 # $fu: sip:test@foo.com
 tel2sip("$ru", $fd", "$ru");
 # $ru:  sip:+12345678;ext=200;isub=+123-456@foo.com;user=phone
+...
+</programlisting>
+		</example>
+	</section>
+	<section id="siputils.f.tel2sip2">
+		<title>
+		<function moreinfo="none">tel2sip2(uri, hostpart, result)</function>
+		</title>
+		<para>
+		Alternative to sip2tel() function that tries to follow closer the RFC
+		requrements (e.g., sort tel: uri parameters copied to the sip: uri in
+		the manner defined in the standard; deletes the phone-context parameter
+		if it is a domain, and, takes visual separators from the phone-context
+		parameter if it is a telephone number).
+		</para>
+		<para>
+		Its parameters have the same meaning as for tel2sip().
+		</para>
+		<para>
+		This function can be used from REQUEST_ROUTE, FAILURE_ROUTE,
+		BRANCH_ROUTE, or ONREPLY_ROUTE.
+		</para>
+		<example>
+		<title><function>tel2sip2</function> usage</title>
+		<programlisting format="linespecific">
+...
+# $ru: tel:+(34)-999-888-777
+# $fu: sip:test@foo.com
+tel2sip2("$ru", $fd", "$ru");
+# $ru:  sip:+34999888777@foo.com;user=phone
 ...
 </programlisting>
 		</example>
@@ -791,7 +786,7 @@ if (is_alphanumex("$rU", "+.-_")) {
 
 	<section id="siputils.f.encode_contact">
 		<title>
-		<function moreinfo="none">encode_contact(encoding_prefix,hostpart)</function>
+		<function moreinfo="none">encode_contact(encoding_prefix, hostpart)</function>
 		</title>
 		<para>
 		This function will encode uri-s inside Contact header in the following
@@ -813,7 +808,7 @@ if (is_alphanumex("$rU", "+.-_")) {
 		<para>Meaning of the parameters is as follows:</para>
 		<itemizedlist>
 		<listitem>
-			<para><emphasis>encoding_prefix</emphasis> - Something to allow us 
+			<para><emphasis>encoding_prefix</emphasis> - Something to allow us
 			to determine that a contact is encoded.
 			</para>
 		</listitem>
@@ -829,7 +824,7 @@ if (is_alphanumex("$rU", "+.-_")) {
 		<title><function>encode_contact</function> usage</title>
 		<programlisting format="linespecific">
 ...
-if (src_ip == 10.0.0.0/8) encode_contact("natted_client","1.2.3.4"); 
+if (src_ip == 10.0.0.0/8) encode_contact("natted_client","1.2.3.4");
 ...
 </programlisting>
 		</example>
@@ -867,9 +862,9 @@ if (uri =~ "^sip:natted_client") { decode_contact(); }
 		<function moreinfo="none">decode_contact_header()</function>
 		</title>
 		<para>
-		This function will decode &uri;s inside Contact header. If the URI in the format 
+		This function will decode &uri;s inside Contact header. If the URI in the format
 		sip:encoding_prefix*username*ip*port*protocol@hostpart it will be decoded to
-		sip:username:password@ip:port;transport=protocol. It uses the 
+		sip:username:password@ip:port;transport=protocol. It uses the
 		default set parameter for contact encoding separator.
 		</para>
 		<para>
@@ -897,7 +892,7 @@ reply_route[2] {
 		<function moreinfo="none">cmp_uri(str1, str2)</function>
 		</title>
 		<para>
-		The function returns <emphasis>true</emphasis> if 
+		The function returns <emphasis>true</emphasis> if
 		the two parameters matches as SIP URI.
 		</para>
    		<para>
@@ -921,7 +916,7 @@ if(cmp_uri("$ru", "sip:kamailio@kamailio.org"))
 		<function moreinfo="none">cmp_aor(str1, str2)</function>
 		</title>
 		<para>
-		The function returns <emphasis>true</emphasis> if 
+		The function returns <emphasis>true</emphasis> if
 		the two parameters matches as AoR. The parameters have to be SIP
 		URIs.
 		</para>
@@ -940,14 +935,37 @@ if(cmp_aor("$rU@KaMaIlIo.org", "sip:kamailio@$fd"))
 </programlisting>
 		</example>
 	</section>
+	<section id="siputils.f.cmp_hdr_name">
+		<title>
+		<function moreinfo="none">cmp_hdr_name(str1, str2)</function>
+		</title>
+		<para>
+		The function returns <emphasis>true</emphasis> (return code 1) if
+		the two parameters matches as header names.
+		</para>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>cmp_hdr_name</function> usage</title>
+		<programlisting format="linespecific">
+...
+if(cmp_hdr_name("$var(hname)", "From"))
+{
+    # do interesting stuff here
+}
+...
+</programlisting>
+		</example>
+	</section>
 	<section  id="siputils.f.append_rpid_hf">
 		<title>
 			<function moreinfo="none">append_rpid_hf()</function></title>
 		<para>
 		Appends to the message a Remote-Party-ID header that contains header
-		'Remote-Party-ID: ' followed by the saved value of the SIP URI 
-		received from the database or radius server followed by the value of 
-		module parameter radius_rpid_suffix.  The function does nothing if 
+		'Remote-Party-ID: ' followed by the saved value of the SIP URI
+		received from the database or radius server followed by the value of
+		module parameter radius_rpid_suffix.  The function does nothing if
 		no saved SIP URI exists.
 		</para>
 		<para>
@@ -968,25 +986,25 @@ append_rpid_hf();  # Append Remote-Party-ID header field
 			<function moreinfo="none">append_rpid_hf(prefix, suffix)</function>
 		</title>
 		<para>
-		This function is the same as 
+		This function is the same as
 		<xref linkend="siputils.f.append_rpid_hf"/>. The only difference is
-		that it accepts two parameters--prefix and suffix to be added to 
-		Remote-Party-ID header field. This function ignores rpid_prefix and 
-		rpid_suffix parameters, instead of that allows to set them in every 
+		that it accepts two parameters--prefix and suffix to be added to
+		Remote-Party-ID header field. This function ignores rpid_prefix and
+		rpid_suffix parameters, instead of that allows to set them in every
 		call.
 		</para>
 		<para>Meaning of the parameters is as follows:</para>
 		<itemizedlist>
 		<listitem>
-			<para><emphasis>prefix</emphasis> - Prefix of the 
-			Remote-Party-ID URI. The string will be added at the beginning of 
+			<para><emphasis>prefix</emphasis> - Prefix of the
+			Remote-Party-ID URI. The string will be added at the beginning of
 			the body of the header field, just before the URI.
 			</para>
 		</listitem>
 		<listitem>
-			<para><emphasis>suffix</emphasis> - Suffix of the Remote-Party-ID 
-			header field. The string will be appended at the end of the 
-			header field. It can be used to set various URI parameters, 
+			<para><emphasis>suffix</emphasis> - Suffix of the Remote-Party-ID
+			header field. The string will be appended at the end of the
+			header field. It can be used to set various URI parameters,
 			for example.
 			</para>
 		</listitem>
@@ -1010,10 +1028,10 @@ append_rpid_hf("", ";party=calling;id-type=subscriber;screen=yes");
 			<function moreinfo="none">is_rpid_user_e164()</function>
 		</title>
 		<para>
-		The function checks if the SIP URI received from the database or 
-		radius server and will potentially be used in Remote-Party-ID header 
-		field contains an E164 number (+followed by up to 15 decimal digits) 
-		in its user part.  Check fails, if no such SIP URI exists 
+		The function checks if the SIP URI received from the database or
+		radius server and will potentially be used in Remote-Party-ID header
+		field contains an E164 number (+followed by up to 15 decimal digits)
+		in its user part.  Check fails, if no such SIP URI exists
 		(i.e. radius server or database didn't provide this information).
 		</para>
 		<para>
@@ -1116,6 +1134,48 @@ if (is_reply()) {
 </programlisting>
 		</example>
 	</section>
+	<section id="siputils.f.is_sip">
+		<title>
+		<function moreinfo="none">is_sip()</function>
+		</title>
+		<para>
+		Return true if it is a SIP message.
+		</para>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>is_sip</function> usage</title>
+		<programlisting format="linespecific">
+...
+if (is_sip()) {
+	...
+}
+...
+</programlisting>
+		</example>
+	</section>
+	<section id="siputils.f.is_http">
+		<title>
+		<function moreinfo="none">is_http()</function>
+		</title>
+		<para>
+		Return true if it is a HTTP message.
+		</para>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>is_http</function> usage</title>
+		<programlisting format="linespecific">
+...
+if (is_http()) {
+	...
+}
+...
+</programlisting>
+		</example>
+	</section>
 	<section id="siputils.f.is_gruu">
 		<title>
 			<function moreinfo="none">is_gruu([uri])</function>
@@ -1154,7 +1214,7 @@ if(is_gruu()) { ... }
 			in Supported header(s) (if any) of the request.
 			Currently the following options are known: path,
 			100rel, timer, eventlist, gruu, and outbound.
-			
+
 		</para>
 		<para>
 		This function can be used from ANY_ROUTE.
@@ -1195,7 +1255,7 @@ if (is_supported("outbound")) { ... }
 		for replies true also in the case of additional SIP reply reception.
 		</para>
 		<para>
-		Parameter mode is optional and can be an integer or a varaible holding
+		Parameter mode is optional and can be an integer or a variable holding
 		an integer. If not provided, the behaviour is like mode==0.
 		</para>
 		<para>
@@ -1207,7 +1267,7 @@ if (is_supported("outbound")) { ... }
 ...
 if(is_first_hop()) { ... }
 ...
-if(is_first_hop_mode("1")) { ... }
+if(is_first_hop("1")) { ... }
 ...
 </programlisting>
 		</example>
@@ -1352,6 +1412,35 @@ if (is_method("INVITE") and src_ip == 1.2.3.4) {
 ...
 if (is_method("REGISTER") and src_ip == 1.2.3.4) {
     contact_param_rm("myparam");
+}
+...
+</programlisting>
+		</example>
+	</section>
+	<section id="siputils.f.contact_param_check">
+		<title>
+		<function moreinfo="none">contact_param_check(pname)</function>
+		</title>
+		<para>
+		This function returns true (1) if the URI inside the Contact
+		header contains the parameter with the name 'pname'. Otherwise it
+		returns false (-1).
+		</para>
+		<para>Meaning of the parameters is as follows:</para>
+		<itemizedlist>
+		<listitem>
+			<para><emphasis>pname</emphasis> - name of the URI parameter.
+			</para>
+		</listitem>
+		</itemizedlist>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>contact_param_check</function> usage</title>
+		<programlisting format="linespecific">
+...
+if (contact_param_check("myparam")) {
 }
 ...
 </programlisting>

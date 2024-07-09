@@ -22,8 +22,8 @@ mod_list_basic=async auth benchmark blst cfg_rpc cfgutils corex counters \
 mod_list_extra=avp auth_diameter call_control call_obj dmq domainpolicy msrp \
 			carrierroute pdb qos sca seas sms sst timer tmrec uac_redirect \
 			xhttp xhttp_rpc xprint jsonrpcs nosip dmq_usrloc statsd rtjson \
-			log_custom keepalive ss7ops app_sqlang acc_diameter evrexec \
-			sipjson lrkproxy xhttp_prom
+			log_custom keepalive ss7ops acc_diameter evrexec file_out \
+			sipjson lrkproxy math posops xhttp_prom dlgs sworker influxdbc
 
 # - common modules depending on database
 mod_list_db=acc alias_db auth_db avpops cfg_db db_text db_flatstore \
@@ -38,7 +38,7 @@ mod_list_dbuid=db2_ops uid_auth_db uid_avp_db uid_domain uid_gflags \
 				 uid_uri_db
 
 # - modules for devel purposes
-mod_list_devel=malloc_test print print_lib
+mod_list_devel=misctest print print_lib
 
 # - modules depending on pcre3 library
 mod_list_pcre=dialplan lcr regex
@@ -77,7 +77,7 @@ mod_list_xmpp=xmpp
 mod_list_berkeley=db_berkeley
 
 # - modules depending on curl library
-mod_list_utils=utils http_client lost
+mod_list_utils=utils http_client lost slack
 
 # - modules depending on curl and libevent2 library
 mod_list_http_async=http_async_client
@@ -88,8 +88,11 @@ mod_list_memcached=memcached
 # - modules depending on openssl library
 mod_list_tlsdeps=crypto tls
 
-# - modules depending on openssl (+curl) library
-mod_list_tlsdeps_curl=auth_identity
+# - modules depending on static openssl library
+mod_list_tlsa=tlsa
+
+# - modules depending on static wolfssl library
+mod_list_tls_wolfssl=tls_wolfssl
 
 # - modules depending on openssl library
 mod_list_outbound=outbound
@@ -116,7 +119,7 @@ mod_list_presence=presence presence_conference presence_dialoginfo \
 
 
 # - modules depending on lua library
-mod_list_lua=app_lua app_lua_sr
+mod_list_lua=app_lua
 
 # - modules depending on perl library
 mod_list_perldeps=app_perl db_perlvdb
@@ -125,13 +128,13 @@ mod_list_perldeps=app_perl db_perlvdb
 mod_list_python=app_python
 
 # - modules depending on python3 library
-mod_list_python3=app_python3
+mod_list_python3=app_python3 app_python3s
 
 # - modules depending on libm (math library - standard system library)
 mod_list_jsdt=app_jsdt
 
 # - modules depending on ruby library
-mod_list_ruby=app_ruby
+mod_list_ruby=app_ruby app_ruby_proc
 
 # - modules depending on geoip library
 mod_list_geoip=geoip
@@ -208,7 +211,7 @@ mod_list_erlang=erlang
 # - modules depending on systemd library
 mod_list_systemd=log_systemd systemdops
 
-# - modules depending on libnsq (+libev libevbuffsock liblcurl libjson-c) library
+# - modules depending on libnsq (+libev libevbuffsock libcurl libjson-c) library
 mod_list_nsq=nsq
 
 # - modules depending on librabbitmq library
@@ -222,6 +225,21 @@ mod_list_kafka=kafka
 
 # - modules depending on mqtt mosquitto and ev library
 mod_list_mqtt=mqtt
+
+# - modules depending on nats and ev library
+mod_list_nats=nats
+
+# - modules depending on ruxc library
+mod_list_ruxc=ruxc
+
+# - modules depending on microhttpd library
+mod_list_microhttpd=microhttpd
+
+# - modules depending on nghttp2 library
+mod_list_nghttp2=nghttp2
+
+# - modules depending on libgcrypt library
+mod_list_gcrypt=gcrypt
 
 # - modules depending on secsipid library
 mod_list_secsipid=secsipid secsipid_proc
@@ -240,7 +258,7 @@ mod_list_all=$(sort $(mod_list_basic) $(mod_list_extra) \
 			   $(mod_list_xmpp) \
 			   $(mod_list_berkeley) $(mod_list_utils) \
 			   $(mod_list_memcached) \
-			   $(mod_list_tlsdeps) $(mod_list_tlsdeps_curl) \
+			   $(mod_list_tlsdeps) \
 			   $(mod_list_websocket) \
 			   $(mod_list_snmpstats) $(mod_list_presence) \
 			   $(mod_list_lua) $(mod_list_python) \
@@ -264,10 +282,17 @@ mod_list_all=$(sort $(mod_list_basic) $(mod_list_extra) \
 			   $(mod_list_phonenum) \
 			   $(mod_list_kafka) \
 			   $(mod_list_mqtt) \
+			   $(mod_list_nats) \
+			   $(mod_list_ruxc) \
 			   $(mod_list_secsipid) \
 			   $(mod_list_jwt) \
 			   $(mod_list_lwsc) \
 			   $(mod_list_stirshaken) \
+			   $(mod_list_tlsa) \
+			   $(mod_list_tls_wolfssl) \
+			   $(mod_list_microhttpd) \
+			   $(mod_list_nghttp2) \
+			   $(mod_list_gcrypt) \
 			   $(mod_list_rtp_media_server)
 
 
@@ -294,7 +319,7 @@ module_group_standard=$(mod_list_basic) $(mod_list_extra) \
 module_group_common=$(mod_list_db) $(mod_list_dbuid) \
 					$(mod_list_pcre) $(mod_list_radius) \
 					$(mod_list_xmldeps) $(mod_list_presence) \
-					$(mod_list_tlsdeps) $(mod_list_tlsdeps_curl)
+					$(mod_list_tlsdeps)
 
 # For db use (db modules, excluding drivers)
 module_group_db=$(mod_list_db)
@@ -306,6 +331,10 @@ module_group_mysql=$(module_group_mysql_driver) $(module_group_db)
 # For postgress
 module_group_postgres_driver=$(mod_list_postgres)
 module_group_postgres=$(module_group_postgres_driver) $(module_group_db)
+
+# For sqlite
+module_group_sqlite_driver=$(mod_list_sqlite)
+module_group_sqlite=$(module_group_sqlite_driver) $(module_group_db)
 
 # For radius
 module_group_radius=$(mod_list_radius)
@@ -383,8 +412,19 @@ module_group_kmemcached=$(mod_list_memcached)
 # pkg tls module
 module_group_ktls_basic=$(mod_list_tlsdeps)
 
+ifeq ($(KTLS_INCLUDE_TLSA),yes)
 # pkg tls module with curl
-module_group_ktls=$(mod_list_tlsdeps) $(mod_list_tlsdeps_curl)
+module_group_ktls=$(mod_list_tlsdeps) $(mod_list_tlsa)
+else
+# pkg tls module with curl
+module_group_ktls=$(mod_list_tlsdeps)
+
+# pkg tlsa module
+module_group_ktlsa=$(mod_list_tlsa)
+endif
+
+# pkg tls_wolfssl module
+module_group_ktls_wolfssl=$(mod_list_tls_wolfssl)
 
 # pkg websocket module
 module_group_kwebsocket=$(mod_list_websocket)
@@ -497,6 +537,21 @@ module_group_kkafka=$(mod_list_kafka)
 # K mqtt modules
 module_group_kmqtt=$(mod_list_mqtt)
 
+# K nats modules
+module_group_knats=$(mod_list_nats)
+
+# K ruxc modules
+module_group_kruxc=$(mod_list_ruxc)
+
+# K microhttpd module
+module_group_kmicrohttpd=$(mod_list_microhttpd)
+
+# K nghttp2 module
+module_group_knghttp2=$(mod_list_nghttp2)
+
+# K gcrypt module
+module_group_kgcrypt=$(mod_list_gcrypt)
+
 # K secsipid modules
 module_group_ksecsipid=$(mod_list_secsipid)
 
@@ -506,4 +561,3 @@ module_group_krtp_media_server=$(mod_list_rtp_media_server)
 # list of static modules
 #
 static_modules:=
-

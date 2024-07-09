@@ -32,7 +32,7 @@ usage:
  serctl mail &lt;username&gt; .................... send an email to a user
  serctl alias show [&lt;alias&gt;] ............... show aliases
  serctl alias rm &lt;alias&gt; ................... remove an alias
- serctl alias add &lt;alias&gt; &lt;uri&gt; ............ add an aliases 
+ serctl alias add &lt;alias&gt; &lt;uri&gt; ............ add an alias
 
            * access control lists *
  serctl acl show [&lt;username&gt;] .............. show user membership
@@ -80,7 +80,7 @@ Up time: 38481 [sec]
 
 Transaction Statistics
 Current: 0 (0 waiting) Total: 606 (0 local)       
-Replied localy: 34      
+Replied locally: 34      
 Completion status 6xx: 0, 5xx: 1, 4xx: 86, 3xx: 0,2xx: 519      
 
 Stateless Server Statistics

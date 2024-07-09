@@ -27,7 +27,6 @@
  */
 
 
-
 #ifndef _DBCL_DATA_H_
 #define _DBCL_DATA_H_
 
@@ -35,10 +34,10 @@
 #include "../../lib/srdb1/db.h"
 #include "../../core/str.h"
 
-#define DBCL_PRIO_SIZE	10
-#define DBCL_CLIST_SIZE	5
+#define DBCL_PRIO_SIZE 10
+#define DBCL_CLIST_SIZE 5
 
-#define DBCL_CON_INACTIVE	1
+#define DBCL_CON_INACTIVE 1
 
 typedef struct dbcl_shared
 {
@@ -51,7 +50,7 @@ typedef struct dbcl_con
 	str name;
 	unsigned int conid;
 	str db_url;
-	db1_con_t  *dbh;
+	db1_con_t *dbh;
 	db_func_t dbf;
 	int flags;
 	dbcl_shared_t *sinfo;
@@ -83,10 +82,15 @@ int dbcl_init_dbf(dbcl_cls_t *cls);
 int dbcl_init_connections(dbcl_cls_t *cls);
 int dbcl_close_connections(dbcl_cls_t *cls);
 dbcl_cls_t *dbcl_get_cluster(str *name);
+dbcl_con_t *dbcl_get_connection(str *name);
+dbcl_cls_t *dbcl_get_cluster_root();
+dbcl_con_t *dbcl_get_connection_root();
 
 int dbcl_valid_con(dbcl_con_t *sc);
 int dbcl_inactive_con(dbcl_con_t *sc);
+int dbcl_disable_con(dbcl_con_t *sc, int seconds);
+int dbcl_enable_con(dbcl_con_t *sc);
 
 int dbcl_parse_con_param(char *val);
 int dbcl_parse_cls_param(char *val);
-#endif /* KM_DBASE_H */
+#endif /* _DBCL_DATA_H_ */

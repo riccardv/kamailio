@@ -67,8 +67,9 @@ int sip_trace_prepare(sip_msg_t *msg)
 		goto error;
 	}
 
-	if(msg->cseq == NULL && ((parse_headers(msg, HDR_CSEQ_F, 0) == -1)
-									|| (msg->cseq == NULL))) {
+	if(msg->cseq == NULL
+			&& ((parse_headers(msg, HDR_CSEQ_F, 0) == -1)
+					|| (msg->cseq == NULL))) {
 		LM_ERR("cannot parse cseq\n");
 		goto error;
 	}
@@ -115,16 +116,16 @@ int sip_trace_xheaders_write(struct _siptrace_data *sto)
 	// Write the new headers a the end-of-header position. This overwrites
 	// the \r\n terminating the old headers and the beginning of the message
 	// body. Both will be recovered later.
-	bytes_written =
-			snprintf(eoh, XHEADERS_BUFSIZE, "X-Siptrace-Fromip: %.*s\r\n"
-											"X-Siptrace-Toip: %.*s\r\n"
-											"X-Siptrace-Time: %llu %llu\r\n"
-											"X-Siptrace-Method: %.*s\r\n"
-											"X-Siptrace-Dir: %s\r\n",
-					sto->fromip.len, sto->fromip.s, sto->toip.len, sto->toip.s,
-					(unsigned long long)sto->tv.tv_sec,
-					(unsigned long long)sto->tv.tv_usec, sto->method.len,
-					sto->method.s, sto->dir);
+	bytes_written = snprintf(eoh, XHEADERS_BUFSIZE,
+			"X-Siptrace-Fromip: %.*s\r\n"
+			"X-Siptrace-Toip: %.*s\r\n"
+			"X-Siptrace-Time: %llu %llu\r\n"
+			"X-Siptrace-Method: %.*s\r\n"
+			"X-Siptrace-Dir: %s\r\n",
+			sto->fromip.len, sto->fromip.s, sto->toip.len, sto->toip.s,
+			(unsigned long long)sto->tv.tv_sec,
+			(unsigned long long)sto->tv.tv_usec, sto->method.len, sto->method.s,
+			sto->dir);
 	if(bytes_written >= XHEADERS_BUFSIZE) {
 		LM_ERR("string too long\n");
 		goto error;
@@ -139,6 +140,7 @@ int sip_trace_xheaders_write(struct _siptrace_data *sto)
 	// Change sto to point to the new buffer.
 	sto->body.s = buf;
 	sto->body.len += bytes_written;
+	sto->alloc_body = 1;
 	return 0;
 error:
 	if(buf != NULL) {
@@ -156,7 +158,8 @@ int sip_trace_xheaders_read(struct _siptrace_data *sto)
 	char *searchend = NULL;
 	char *eoh = NULL;
 	char *xheaders = NULL;
-	long long unsigned int tv_sec, tv_usec;
+	long long unsigned int tv_sec = 0, tv_usec = 0;
+	int rv = 0;
 
 	if(trace_xheaders_read == 0) {
 		return 0;
@@ -200,15 +203,17 @@ int sip_trace_xheaders_read(struct _siptrace_data *sto)
 	}
 
 	// Parse the x-headers: scanf()
-	if(sscanf(xheaders, "\r\n"
-						"X-Siptrace-Fromip: %50s\r\n"
-						"X-Siptrace-Toip: %50s\r\n"
-						"X-Siptrace-Time: %llu %llu\r\n"
-						"X-Siptrace-Method: %50s\r\n"
-						"X-Siptrace-Dir: %3s",
-			   sto->fromip.s, sto->toip.s, &tv_sec, &tv_usec, sto->method.s,
-			   sto->dir)
-			== EOF) {
+	rv = sscanf(xheaders,
+			"\r\n"
+			"X-Siptrace-Fromip: %50s\r\n"
+			"X-Siptrace-Toip: %50s\r\n"
+			"X-Siptrace-Time: %llu %llu\r\n"
+			"X-Siptrace-Method: %50s\r\n"
+			"X-Siptrace-Dir: %3s",
+			sto->fromip.s, sto->toip.s, &tv_sec, &tv_usec, sto->method.s,
+			sto->dir);
+
+	if(rv == EOF || rv < 6) {
 		LM_ERR("malformed x-headers\n");
 		goto erroraftermalloc;
 	}
@@ -224,6 +229,7 @@ int sip_trace_xheaders_read(struct _siptrace_data *sto)
 	*eoh = '\r';
 	memmove(xheaders, eoh, sto->body.len - (eoh - sto->body.s));
 	sto->body.len -= eoh - xheaders;
+	sto->alloc_headers = 1;
 
 	return 0;
 
@@ -252,14 +258,15 @@ erroraftermalloc:
  */
 int sip_trace_xheaders_free(struct _siptrace_data *sto)
 {
-	if(trace_xheaders_write != 0) {
+	if(sto->alloc_body != 0) {
 		if(sto->body.s) {
 			pkg_free(sto->body.s);
 			sto->body.s = 0;
 		}
+		sto->alloc_body = 0;
 	}
 
-	if(trace_xheaders_read != 0) {
+	if(sto->alloc_headers != 0) {
 		if(sto->fromip.s) {
 			pkg_free(sto->fromip.s);
 			sto->fromip.s = 0;
@@ -272,6 +279,7 @@ int sip_trace_xheaders_free(struct _siptrace_data *sto)
 			pkg_free(sto->dir);
 			sto->dir = 0;
 		}
+		sto->alloc_headers = 0;
 	}
 
 	return 0;
@@ -293,7 +301,8 @@ int trace_send_duplicate(char *buf, int len, dest_info_t *dst2)
 
 	/* either modparam dup_uri or siptrace param dst2 */
 	if((trace_dup_uri_str.s == 0 || trace_dup_uri == NULL) && (dst2 == NULL)) {
-		LM_WARN("Neither dup_uri modparam or siptrace destination uri param used!\n");
+		LM_WARN("Neither dup_uri modparam or siptrace destination uri param "
+				"used!\n");
 		return 0;
 	}
 
@@ -301,9 +310,10 @@ int trace_send_duplicate(char *buf, int len, dest_info_t *dst2)
 
 	if(!dst2) {
 		/* create a temporary proxy from dst param */
-		dst.proto = PROTO_UDP;
+		dst.proto = trace_dup_uri->proto;
 		p = mk_proxy(&trace_dup_uri->host,
-				(trace_dup_uri->port_no) ? trace_dup_uri->port_no : SIP_PORT, dst.proto);
+				(trace_dup_uri->port_no) ? trace_dup_uri->port_no : SIP_PORT,
+				dst.proto);
 		if(p == 0) {
 			LM_ERR("bad host name in uri\n");
 			return -1;
@@ -332,8 +342,8 @@ int trace_send_duplicate(char *buf, int len, dest_info_t *dst2)
 						trace_send_sock_str.len, trace_send_sock_str.s);
 			} else {
 				LM_DBG("using local send socket: [%.*s] [%.*s]\n",
-						pdst->send_sock->name.len,
-						pdst->send_sock->name.s, pdst->send_sock->address_str.len,
+						pdst->send_sock->name.len, pdst->send_sock->name.s,
+						pdst->send_sock->address_str.len,
 						pdst->send_sock->address_str.s);
 			}
 		}
@@ -347,9 +357,11 @@ int trace_send_duplicate(char *buf, int len, dest_info_t *dst2)
 					pdst->to.s.sa_family, pdst->proto);
 			goto error;
 		}
+	} else {
+		pdst->send_flags.f |= SND_F_FORCE_SOCKET;
 	}
 
-	if(msg_send(pdst, buf, len) < 0) {
+	if(msg_send_buffer(pdst, buf, len, 1) < 0) {
 		LM_ERR("cannot send duplicate message\n");
 		goto error;
 	}
@@ -370,7 +382,7 @@ error:
 /**
  *
  */
-char* siptrace_proto_name(int vproto)
+char *siptrace_proto_name(int vproto)
 {
 	switch(vproto) {
 		case PROTO_TCP:

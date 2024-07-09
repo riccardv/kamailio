@@ -18,11 +18,7 @@
 	<title>Overview</title>
 	<para>
 		This is a module that enables media streams to be proxied
-		via an rtpproxy.  Rtpproxies know to work with this module
-		are Sippy RTPproxy <ulink url="http://www.rtpproxy.org"></ulink>
-		and ngcp-rtpproxy-ng
-		<ulink url="http://deb.sipwise.com/spce/2.6/pool/main/n/ngcp-mediaproxy-ng"></ulink>.
-		Some features of the rtpproxy module apply only to one of the two rtpproxies.
+		via the Sippy RTPproxy <ulink url="http://www.rtpproxy.org"></ulink>.
 	</para>
 	</section>
 
@@ -235,7 +231,37 @@ modparam("rtpproxy", "nortpproxy_str", "a=sdpmangled:yes\r\n")
 		<title>Set <varname>timeout_socket</varname> parameter</title>
 		<programlisting format="linespecific">
 ...
-modparam("rtpproxy", "timeout_socket", "xmlrpc:http://127.0.0.1:8000/RPC2")
+modparam("rtpproxy", "timeout_socket", "tcp:127.0.0.1:8000")
+...
+</programlisting>
+		</example>
+	</section>
+	<section id="rtpproxy.p.timeout_tag_pv">
+		<title><varname>timeout_tag_pv</varname> (string)</title>
+		<para>
+		The parameter devines the AVP of the string to be provided to the
+		RTP-Proxy.
+		</para>
+		<para>
+		The content of the AVP must be a valid URL-encoded string with
+		no spaces.
+		It will be decoded and send by the RTP proxy to the timeout socket if the
+		media timeout has happened.
+		</para>
+		<para>
+		This parameter is required in order for the timeout notification
+		mechanism to work properly.
+		</para>
+		<para>
+		<emphasis>
+			Default value is <quote></quote> (nothing).
+		</emphasis>
+		</para>
+		<example>
+		<title>Set <varname>timeout_tag_pv</varname> parameter</title>
+		<programlisting format="linespecific">
+...
+modparam("rtpproxy", "timeout_tag_pv", "$avp(rtpp_ntag)")
 ...
 </programlisting>
 		</example>
@@ -299,7 +325,7 @@ modparam("rtpproxy", "extra_id_pv", "$avp(extra_id)")
 		<title>Set <varname>db_url</varname> parameter</title>
 		<programlisting format="linespecific">
 ...
-modparam("rtpproxy", "db_url", "mysql://user:passwb@localhost/database")
+modparam("rtpproxy", "db_url", "mysql://user:passwd@localhost/database")
 ...
 </programlisting>
 		</example>
@@ -463,7 +489,7 @@ rtpproxy_offer();
 				<emphasis>x</emphasis> - this flag a shortcut for using the "ie" or "ei"-flags of RTP-Proxy,
 				in order to do automatic bridging between IPv4 on the
 				"internal network" and IPv6 on the "external network". The distinction is done by
-				the given IP in the SDP, e.g. a IPv4 Address will always call "ie" to the RTPProxy
+				the given IP in the SDP, e.g. an IPv4 Address will always call "ie" to the RTPProxy
 				(IPv4(i) to IPv6(e)) and an IPv6Address will always call "ei" to the RTPProxy (IPv6(e)
 				to IPv4(i)).
 				</para><para>
@@ -475,7 +501,7 @@ rtpproxy_offer();
 				<listitem><para>
 				<emphasis>f</emphasis> - instructs rtpproxy to ignore marks
 				inserted by another rtpproxy in transit to indicate that the
-				session is already goes through another proxy. Allows creating
+				session already goes through another proxy. Allows creating
 				a chain of proxies.
 				</para></listitem>
 				<listitem><para>
@@ -653,7 +679,7 @@ rtpproxy_destroy();
 		internally based on message type and method which one to execute.
 		</para>
 		<para>
-		It can take the same parameters as <function>rtpproxy_offer().</function>
+		It can take the same parameters as <function>rtpproxy_offer()</function>.
 		The flags parameter to rtpproxy_manage() can be a configuration variable
 		containing the flags as a string.
 		</para>
@@ -856,25 +882,31 @@ start_recording();
 	</section>
 
 	<section>
-		<title>Exported Pseudo Variables</title>
-		<section id="rtpproxy.pv.rtpstat">
-			<title><function moreinfo="none">$rtpstat</function></title>
+		<title>Exported Variables</title>
+		<section id="rtpproxy.pv.rtppstat">
+			<title><function moreinfo="none">$rtppstat</function></title>
 			<para>
 			Returns the RTP-Statistics from the RTP-Proxy. The RTP-Statistics from the RTP-Proxy
 			are provided as a string and it does contain several packet-counters. The statistics
 			must be retrieved before the session is deleted	(before <function>unforce_rtpproxy()</function>).
+			It is the output of RTPProxy 'Q' command.
 			</para>
 
 		<example>
-		<title>$rtpstat-Usage</title>
+		<title>$rtppstat Usage</title>
 		<programlisting format="linespecific">
 ...
-    append_hf("X-RTP-Statistics: $rtpstat\r\n");
+    append_hf("X-RTP-Statistics: $rtppstat\r\n");
 ...
 		</programlisting>
 		</example>
 	        </section>
-
+		<section id="rtpproxy.pv.rtpstat">
+			<title><function moreinfo="none">$rtpstat</function></title>
+			<para>
+			Same as $rtppstat.
+			</para>
+	        </section>
 	</section>
 
 	<section>

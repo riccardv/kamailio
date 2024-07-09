@@ -29,7 +29,7 @@
 	The routing engine can be found in file <filename>action.c</filename>.
     </para>
     <para>
-	The main function is <function>run_actions.</function> The function
+	The main function is <function>run_actions</function>. The function
 	accepts two parameters. The first parameter is list of actions to be
 	processed (Remember, the config file gets translated into array of
 	linked lists. Each linked list in the array represents one "route" part
@@ -259,7 +259,7 @@
 		    route statement.
 		</para>
 		<para>
-		    As we have mentioned already, there can be more that one
+		    As we have mentioned already, there can be more than one
 		    route statement in the config file. One of them is main
 		    (without number), the other are additional. This command
 		    makes it possible to execute an additional route statement.

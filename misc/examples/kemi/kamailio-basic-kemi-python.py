@@ -106,7 +106,7 @@ class kamailio:
 
         if KSR.corex.has_ruri_user() < 0 :
             # request with no Username in RURI
-            KSR.sl.sl_send_reply(484,"Address Incomplete")
+            KSR.sl.sl_send_reply(484, "Address Incomplete")
             return 1
 
 
@@ -158,21 +158,22 @@ class kamailio:
         if KSR.corex.has_user_agent() > 0 :
             ua = KSR.pv.gete("$ua")
             if (ua.find("friendly")!=-1 or ua.find("scanner")!=-1
-                    or ua.find("sipcli")!=-1 or ua.find("sipvicious")!=-1) :
+                    or ua.find("sipcli")!=-1 or ua.find("sipvicious")!=-1
+                    or ua.find("VaxSIPUserAgent")!=-1 or ua.find("pplsip")!=-1) :
                 KSR.sl.sl_send_reply(200, "Processed")
                 return -255
 
         if KSR.maxfwd.process_maxfwd(10) < 0 :
-            KSR.sl.sl_send_reply(483,"Too Many Hops")
+            KSR.sl.sl_send_reply(483, "Too Many Hops")
             return -255
 
         if (KSR.is_OPTIONS()
                 and KSR.is_myself_ruri()
                 and KSR.corex.has_ruri_user() < 0) :
-            KSR.sl.sl_send_reply(200,"Keepalive")
+            KSR.sl.sl_send_reply(200, "Keepalive")
             return -255
 
-        if KSR.sanity.sanity_check(1511, 7)<0 :
+        if KSR.sanity.sanity_check(17895, 7)<0 :
             KSR.err("Malformed SIP message from "
                     + KSR.pv.get("$si") + ":" + str(KSR.pv.get("$sp")) +"\n")
             return -255
@@ -183,7 +184,7 @@ class kamailio:
         if KSR.siputils.has_totag()<0 :
             return 1
 
-        # sequential request withing a dialog should
+        # sequential request within a dialog should
         # take the path determined by record-routing
         if KSR.rr.loose_route()>0 :
             if self.ksr_route_dlguri(msg)==-255 :
@@ -276,7 +277,7 @@ class kamailio:
         # if caller is not local subscriber, then check if it calls
         # a local destination, otherwise deny, not an open relay here
         if (not KSR.is_myself_furi()) and (not KSR.is_myself_ruri()) :
-            KSR.sl.sl_send_reply(403,"Not relaying")
+            KSR.sl.sl_send_reply(403, "Not relaying")
             return -255
 
         return 1
@@ -372,7 +373,14 @@ class kamailio:
     # SIP response handling
     # -- equivalent of reply_route{}
     def ksr_reply_route(self, msg):
-        KSR.info("===== response - from kamailio python script\n")
+        KSR.dbg("response handling - python script\n")
+
+        if KSR.sanity.sanity_check(17604, 6)<0 :
+            KSR.err("Malformed SIP response from "
+                    + KSR.pv.get("$si") + ":" + str(KSR.pv.get("$sp")) +"\n")
+            KSR.set_drop()
+            return -255
+
         return 1
 
 

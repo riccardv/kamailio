@@ -29,7 +29,7 @@
 
       <itemizedlist>
         <listitem>
-          <para>Dialog</para>
+          <para>IMS Dialog</para>
         </listitem>
 
         <listitem>
@@ -53,7 +53,7 @@
     <section>
       <title>External Libraries or Applications</title>
 
-      <para>This modules requires the internal IMS library.</para>
+      <para>This module requires the internal IMS library.</para>
     </section>
   </section>
 
@@ -261,10 +261,10 @@ modparam("ims_qos", "video_default_bandwidth", 256)
     <section>
       <title><varname>early_qosrelease_reason</varname> (String)</title>
 
-      <para>This sets the default Reason, when a call is terminated in 
+      <para>This sets the default Reason, when a call is terminated in
             early stage due to QoS-failure.</para>
 
-      <para><emphasis> Default value is "QoS released", an call in early stage
+      <para><emphasis> Default value is "QoS released", a call in early stage
 		       would be released with "488 QoS released".</emphasis></para>
 
       <example>
@@ -281,7 +281,7 @@ modparam("ims_qos", "early_qosrelease_reason", "Sorry - QoS failed")
     <section>
       <title><varname>confirmed_qosrelease_headers</varname> (String)</title>
 
-      <para>These headers are added to the BYE-Message, when an confirmed call
+      <para>These headers are added to the BYE-Message, when a confirmed call
 	    is terminated due to a QoS failure.</para>
 
       <para><emphasis> Default value is "", no Extra-Headers</emphasis></para>
@@ -299,16 +299,16 @@ modparam("ims_qos", "confirmed_qosrelease_headers", "X-Reason: QoS failed\r\n")
         </programlisting>
       </example>
     </section>
-    
+
     <section>
       <title><varname>regex_sdp_ip_prefix_to_maintain_in_fd</varname> (String)</title>
 
       <para>The flow-description AVP is typically populated using IP:port information
-          present in the SDP.  Certain (buggy) UEs can change ports midway during 
-          calls which causes the flow-description to no longer match the 
-          traffic.  This parameter allows the flow-description AVP to use to the 
-          any keyword instead of certain IP:port combinations in the SDP. The 
-          parameter is a regex that if set adds an extra filter for all IPs that do not match 
+          present in the SDP.  Certain (buggy) UEs can change ports midway during
+          calls which causes the flow-description to no longer match the
+          traffic.  This parameter allows the flow-description AVP to use to the
+          any keyword instead of certain IP:port combinations in the SDP. The
+          parameter is a regex that if set adds an extra filter for all IPs that do not match
           the regex with the any keyword in the flow-description AVP</para>
 
       <para><emphasis> Default value is "", no extra filters added</emphasis></para>
@@ -324,7 +324,7 @@ modparam("ims_qos", "regex_sdp_ip_prefix_to_maintain_in_fd", "10.21.0.1")
         </programlisting>
       </example>
     </section>
-    
+
     <section>
       <title><varname>terminate_dialog_on_rx_failure</varname> integer</title>
 
@@ -344,7 +344,7 @@ modparam("ims_qos", "terminate_dialog_on_rx_failure", 0)
         </programlisting>
       </example>
     </section>
-    
+
     <section>
       <title><varname>delete_contact_on_rx_failure</varname> integer</title>
 
@@ -364,11 +364,11 @@ modparam("ims_qos", "delete_contact_on_rx_failure", 0)
         </programlisting>
       </example>
     </section>
-    
+
     <section>
       <title><varname>include_rtcp_fd</varname> integer</title>
 
-      <para>If set then a flow description is added for media flows - next available odd port 
+      <para>If set then a flow description is added for media flows - next available odd port
           is used as the default for RTCP traffic</para>
 
       <para><emphasis> Default value is 0, RTCP flow description not added</emphasis></para>
@@ -384,7 +384,242 @@ modparam("ims_qos", "include_rtcp_fd", 1)
         </programlisting>
       </example>
     </section>
-    
+
+    <section>
+      <title><varname>af_signaling_ip</varname> (String)</title>
+
+      <para>Set P-CSCF IPv4 address to generate the flows for the UE - PCSCF signaling path. Used only for AAR register, Flow-Description AVP (507)</para>
+
+      <para><emphasis> Default value is 127.0.0.1</emphasis></para>
+
+      <example>
+        <title><varname>af_signaling_ip</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "af_signaling_ip", "127.0.0.1")
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>af_signaling_ip6</varname> (String)</title>
+
+      <para>Set P-CSCF IPv6 address to generate the flows for the UE - PCSCF signaling path. Used only for AAR register, Flow-Description AVP (507)</para>
+
+      <para><emphasis> Default value is ""</emphasis></para>
+
+      <example>
+        <title><varname>af_signaling_ip6</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "af_signaling_ip6", "fd16::205:2dee:ce4a:ab22")
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>media_type</varname> (String)</title>
+
+      <para>Describe Media Type AVP(520) for AAR register</para>
+
+      <para><emphasis> Default value is 'control'</emphasis></para>
+
+      <example>
+        <title><varname>media_type</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "media_type", "audio")
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>flow_protocol</varname> (String)</title>
+
+      <para>Describe Flow protocol for Flow-Description AVP (507). Used only for AAR register</para>
+
+      <para><emphasis> Default value is 'IP'</emphasis></para>
+
+      <example>
+        <title><varname>flow_protocol</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "flow_protocol", "UDP")
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>omit_flow_ports</varname> integer</title>
+
+      <para>If set to 1 ommit ports for Flow-Description AVP (507). Used only for AAR register</para>
+
+      <para><emphasis> Default value is 0, Add ports to Flow-Description AVP (507)</emphasis></para>
+
+      <example>
+        <title><varname>omit_flow_ports</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "omit_flow_ports", 1)
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>rs_default_bandwidth</varname> integer</title>
+
+      <para>Describe default RS-Bandwidth AVP(522) for AAR</para>
+
+      <para><emphasis> Default value is 0</emphasis></para>
+
+      <example>
+        <title><varname>rs_default_bandwidth</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "rs_default_bandwidth", 600)
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>rr_default_bandwidth</varname> integer</title>
+
+      <para>Describe default RR-Bandwidth AVP(521) for AAR</para>
+
+      <para><emphasis> Default value is 0</emphasis></para>
+
+      <example>
+        <title><varname>rr_default_bandwidth</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "rr_default_bandwidth", 2000)
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>suspend_transaction</varname> integer</title>
+
+      <para>If enabled, suspends the tm transaction while doing the AAR.</para>
+
+      <para><emphasis> Default value is 1 (enabled)</emphasis></para>
+
+      <example>
+        <title><varname>suspend_transaction</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "suspend_transaction", 0)
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>recv_mode</varname> integer</title>
+
+	  <para>If set to 0, rx_aar_register() takes the received-from address values
+	  (IP, port, proto) from the IP frame. If set to 1, it takes them from
+      Via header. </para>
+
+      <para><emphasis> Default value is 0</emphasis></para>
+
+      <example>
+        <title><varname>recv_mode</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "recv_mode", 1)
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>dialog_direction</varname> integer</title>
+
+	  <para>If set to 1, DLG_MOBILE_ORIGINATING is set to
+	  rx_add_media_component_description_avp() instead of DLG_MOBILE_REGISTER
+	  (which corresponds to value 3).
+      </para>
+
+      <para><emphasis> Default value is 3</emphasis></para>
+
+      <example>
+        <title><varname>dialog_direction</varname> parameter
+        usage</title>
+
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "dialog_direction", 1)
+...
+        </programlisting>
+      </example>
+    </section>
+
+    <section>
+      <title><varname>trust_bottom_via</varname> (int)</title>
+      <para>
+        If set to 1 it will trust the bottom Via as the UE IP/port/transport when doing client identification.
+      </para>
+      <para>
+        Normally, the UE identification should be done on IPsec SPIs and source IP/port of the packets. 
+        In some cases the ims_* modules trust the top Via on requests and the bottom Via on responses. In some (better)
+        cases this trusts the received-from IP (or the alias in the Contact header).
+      </para>
+      <para>
+        This parameter allows for an external-to-Kamailio IPsec functionality to be used. That will be in charge of
+        guaranteeing that the bottom Via header is always correct (on requests; on responses the P-CSCF itself should
+        guarantee unmodified Via headers stack). Then the code here will always use the bottom Via as the source of
+        truth for IMS UE identification.
+      </para>
+      <para>
+        <emphasis>Note:</emphasis> this will prefer the standard received and rport values, if present, over the actual
+        Via sent-by host and port.
+      </para>
+      <para>
+        <emphasis>Note:</emphasis> !! trusting the Via header has security drawbacks, as it might be easily spoofed by
+        an attacker. Hence, without extra security, the P-CSCF shouldn't trust the Via header for client identification
+        on requests and the ims_registrar_pcscf module would require a fix or extension for that. !!
+      </para>
+      <para>
+        See also the same parameter in the ims_registrar_pcscf module.
+      </para>
+      <para><emphasis>Default value is 0 (trust received-from IP and alias in Contact, and, unfortunaly somewhat wrongly
+      top/bottom Via on requests/responses).</emphasis></para>
+      <example>
+        <title><varname>trust_bottom_via</varname> parameter usage</title>
+        <programlisting format="linespecific">
+...
+modparam("ims_qos", "trust_bottom_via", 1)
+...
+        </programlisting>
+      </example>
+    </section>
+
   </section>
 
   <section>
@@ -394,7 +629,7 @@ modparam("ims_qos", "include_rtcp_fd", 1)
       <title><function moreinfo="none">Rx_AAR_Register(route_block,
       domain)</function></title>
 
-      <para>Perform a AAR on Diameter RX interface to subscribe to signalling
+      <para>Perform an AAR on Diameter RX interface to subscribe to signalling
       status. This purpose of this is tell a Diameter server (typically a
       PCRF) to inform the requesting Diameter client on changes to the status
       of signalling bearer for the same framed IP address. For more details
@@ -463,7 +698,7 @@ route[REG_AAR_REPLY]
       <title><function moreinfo="none">Rx_AAR(route_block,
       direction, subscription_id, subscription_id_type)</function></title>
 
-      <para>Perform a AAR on Diameter RX interface to request resource
+      <para>Perform an AAR on Diameter RX interface to request resource
       authorisation from a Diameter server (typically a PCRF). For more
       details see 3GGP TS 29.214.</para>
 
@@ -478,23 +713,23 @@ route[REG_AAR_REPLY]
           <para><emphasis>direction</emphasis> of this message -
           orig, term, etc.</para>
         </listitem>
-	
+
 	<listitem>
           <para><emphasis>subscription_id</emphasis> to hard code subscription ID for AAR.
 	  Used for some broken PCRFs.  Leave blank to use default</para>
         </listitem>
-	
+
 	<listitem>
           <para><emphasis>subscription_id_type</emphasis> to hard code subscription ID type
 	  for AAR. Only applicable if subscription_id is set. Set to -1 to use default.
-	  This is as per RFC 4006: 
+	  This is as per RFC 4006:
 	  END_USER_E164 0, END_USER_IMSI 1, END_USER_SIP_URI 2, END_USER_NAI 3,
 	  END_USER_PRIVATE 4</para>
 	</listitem>
 	</itemizedlist>
 
-      <para>This function can be used from REQUEST_ROUTE or
-      ONREPLY_ROUTE.</para>
+	<para>This function can be used only from ONREPLY_ROUTE, only for replies to INVITE, UPDATE, PRACK.
+	The reply and request must have SDP, for this function to work properly.</para>
 
       <para>p.s. this is executed asynchronously. See example on how to
       retrieve return value</para>
@@ -515,7 +750,7 @@ route[ORIGN_SESSION_AAR_REPLY]
         dlg_terminate("all", "Sorry no QoS available");
     } else {
         xlog("L_DBG", "Diameter: Orig AAR success on media authorization\n");
-    } 
+    }
 }
 ...
 </programlisting>
@@ -529,7 +764,7 @@ route[ORIGN_SESSION_AAR_REPLY]
     <section>
       <title>AAR Timeouts (aar_timeouts)</title>
 
-      <para>The number of timeouts on sending a AAR. i.e. no response to
+      <para>The number of timeouts on sending an AAR. i.e. no response to
       AAR.</para>
     </section>
 

@@ -104,10 +104,10 @@ endif
 INSTALL_FLAVOUR=$(FLAVOUR)
 
 # version number
-VERSION = 5
-PATCHLEVEL = 6
+VERSION = 6
+PATCHLEVEL = 0
 SUBLEVEL =  0
-EXTRAVERSION = -dev0
+EXTRAVERSION = -dev2
 
 # memory manager switcher
 # 0 - f_malloc (fast malloc)
@@ -181,7 +181,7 @@ LD_EXTRA_OPTS ?=
 
 
 # enable workaround for libssl 1.1+ to set shared mutex attribute
-LIBSSL_SET_MUTEX_SHARED ?=
+LIBSSL_SET_MUTEX_SHARED ?= 1
 ifneq ($(LIBSSL_SET_MUTEX_SHARED), 1)
 
 ifeq ($(CROSS_COMPILE),)
@@ -283,7 +283,7 @@ ifneq (,$(findstring gcc, $(CC_LONGVER)))
 	# sed with POSIX.1 regex doesn't support |, + or ?
 	# (darwin, solaris ...) => this complicated expression
 	MKDEP=$(CC) -MM -MG
-	#transform gcc version into 2.9x or 3.0
+	#transform gcc version into some well-known versions, or 9 for newer versions
 	CC_SHORTVER:=$(shell echo "$(CC_VER)" | cut -d" " -f 2| \
 				 sed -e 's/[^0-9]*-\(.*\)/\1/'| \
 				 sed -e 's/2\.9.*/2.9x/' \
@@ -307,8 +307,8 @@ ifneq (,$(findstring gcc, $(CC_LONGVER)))
 					-e 's/8\.[0-9]$$/8.0+/' \
 					-e 's/9\.[0-9]\..*/9.0+/' \
 					-e 's/9\.[0-9]$$/9.0+/' \
-					-e 's/10\.[0-9]\..*/9.0+/' \
-					-e 's/10\.[0-9]$$/9.0+/')
+					-e 's/1[0-4]\.[0-9]\..*/9.0+/' \
+					-e 's/1[0-4]\.[0-9]$$/9.0+/')
 ifeq (,$(strip $(filter-out 3.0 3.4 4.x 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 	# dependencies can be generated on-the-fly while compiling *.c
 	CC_MKDEP_OPTS=-MMD -MP
@@ -522,7 +522,12 @@ ifeq ($(OS), darwin)
 	doc_dir = share/doc/$(MAIN_NAME)/
 	man_dir = man/
 	data_dir = share/$(MAIN_NAME)/
+	MACPORTS = $(shell which port 2>/dev/null)
+ifeq ($(MACPORTS),)
 	LOCALBASE ?= /usr/local
+else
+	LOCALBASE ?= /opt/local
+endif
 endif
 
 LOCALBASE ?= /usr/local
@@ -584,15 +589,11 @@ data_target = $(prefix)/$(data_dir)
 #		uses a faster malloc
 # -DDBG_QM_MALLOC
 #		qm_malloc debug code, will cause pkg_malloc and shm_malloc
-#		to keep and display lot of debuging information: file name,
+#		to keep and display lot of debugging information: file name,
 #		function, line number of malloc/free call for each block,
 #		extra error checking (trying to free the same pointer
 #		twice, trying to free a pointer alloc'ed with a different
 #		malloc etc.)
-# -DVQ_MALLOC
-#		additional option to PKG_MALLOC which utilizes a fater then
-#		qm version
-#		(not true anymore, q_malloc performs approx. the same)
 # -DQ_MALLOC
 #		custom quick malloc, recommended for debugging
 # -DF_MALLOC
@@ -614,7 +615,7 @@ data_target = $(prefix)/$(data_dir)
 # -DMEM_JOIN_FREE
 #		enable the join of free memory chunks (see also mem_join cfg param)
 # -DFAST_LOCK
-#		uses fast arhitecture specific locking (see the arh. specific section)
+#		uses fast architecture specific locking (see the arch. specific section)
 # -DUSE_SYSV_SEM
 #		uses sys v sems for locking (slower & limited number)
 # -DUSE_PTHREAD_MUTEX
@@ -726,7 +727,6 @@ C_DEFS+= -DSHM_MMAP \
 	 -DUSE_DNS_FAILOVER \
 	 -DUSE_DST_BLOCKLIST \
 	 -DUSE_NAPTR \
-	 -DWITH_XAVP \
 	 #-DUSE_DNS_CACHE_STATS \
 	 #-DUSE_DST_BLOCKLIST_STATS \
 	 #-DDNS_WATCHDOG_SUPPORT \
@@ -736,7 +736,6 @@ C_DEFS+= -DSHM_MMAP \
 	 #-DDBG_F_MALLOC \
 	 #-DNO_DEBUG \
 	 #-DEXTRA_DEBUG \
-	 #-DVQ_MALLOC  \
 	 #-DDBG_LOCK \
 	 #-DNOSMP \
 	 #-DNO_LOG \
@@ -923,8 +922,8 @@ ifeq ($(use_fast_lock), yes)
 	found_lock_method=yes
 endif
 
-CFLAGS=
-LDFLAGS=
+CFLAGS=-g
+LDFLAGS=-g
 C_INCLUDES=
 # setting CFLAGS
 ifeq ($(mode), release)
@@ -934,7 +933,7 @@ ifeq	($(ARCH), i386)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=-g $(CC_OPT) -funroll-loops  -Wcast-align $(PROFILE)
+				CFLAGS+=$(CC_OPT) -funroll-loops  -Wcast-align $(PROFILE)
 			#if gcc 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 $(call				set_if_empty,CPUTYPE,generic)
@@ -991,17 +990,17 @@ else		# CC_NAME, gcc
 ifeq		($(CC_NAME), clang)
 $(call                          set_if_empty,CPUTYPE,athlon64)
 					C_DEFS+=-DCC_GCC_LIKE_ASM
-					CFLAGS+=-g -m32 $(CC_OPT) -mtune=$(CPUTYPE)
+					CFLAGS+=-m32 $(CC_OPT) -mtune=$(CPUTYPE)
 					LDFLAGS+=-m32
 else			# CC_NAME, clang
 ifeq		($(CC_NAME), icc)
 			C_DEFS+=-DCC_GCC_LIKE_ASM
-			CFLAGS=-g -O3  -ipo -ipo_obj -unroll  $(PROFILE) \
+			CFLAGS+=-O3  -ipo -ipo_obj -unroll  $(PROFILE) \
 					 -tpp6 -xK  #-openmp  #optimize for PIII
 				# -prefetch doesn't seem to work
-				#( ty to inline acroos files, unroll loops,prefetch,
+				#( try to inline across files, unroll loops, prefetch,
 				# optimize for PIII, use PIII instructions & vect.,
-				# mutlithread loops)
+				# multithread loops)
 else
 				#other compilers
 $(error 			Unsupported compiler ($(CC):$(CC_NAME)), try gcc)
@@ -1016,7 +1015,7 @@ ifeq	($(ARCH), x86_64)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=-g $(CC_OPT) -funroll-loops  -Wcast-align $(PROFILE)
+				CFLAGS+=$(CC_OPT) -funroll-loops  -Wcast-align $(PROFILE)
 			#if gcc 4.5+
 ifeq			($(CC_SHORTVER),$(filter $(CC_SHORTVER),4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+))
 $(call				set_if_empty,CPUTYPE,generic)
@@ -1073,18 +1072,18 @@ else		# CC_NAME, gcc
 ifeq            ($(CC_NAME), clang)
 $(call                          set_if_empty,CPUTYPE,opteron)
 					C_DEFS+=-DCC_GCC_LIKE_ASM
-                                        CFLAGS+=-g -m64 \
+                                        CFLAGS+=-m64 \
                                                 $(CC_OPT)
                                         LDFLAGS+=-m64
 else      	# CC_NAME, clang
 ifeq		($(CC_NAME), icc)
 			C_DEFS+=-DCC_GCC_LIKE_ASM
-			CFLAGS=-g -O3  -ipo -ipo_obj -unroll  $(PROFILE) \
+			CFLAGS+=-O3  -ipo -ipo_obj -unroll  $(PROFILE) \
 					 -tpp6 -xK  #-openmp  #optimize for PIII
 				# -prefetch doesn't seem to work
-				#( ty to inline acroos files, unroll loops,prefetch,
+				#( try to inline across files, unroll loops, prefetch,
 				# optimize for PIII, use PIII instructions & vect.,
-				# mutlithread loops)
+				# multithread loops)
 else
 				#other compilers
 $(error 			Unsupported compiler ($(CC):$(CC_NAME)), try gcc)
@@ -1099,7 +1098,7 @@ ifeq	($(ARCH), sparc64)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM -DSPARC64_MODE
 				#common stuff
-				CFLAGS=-g $(CC_OPT) -funroll-loops  $(PROFILE) \
+				CFLAGS+=$(CC_OPT) -funroll-loops  $(PROFILE) \
 					#-Wcast-align \
 					#-Wmissing-prototypes
 				#if gcc 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
@@ -1175,7 +1174,7 @@ else		#CC_NAME, gcc
 ifeq		($(CC_NAME), suncc)
 			C_DEFS+=-DCC_GCC_LIKE_ASM
 			C_DEFS+=-DSPARC64_MODE
-			CFLAGS+= -m64 -g -xO3 -xtarget=native -xmemalign=8i \
+			CFLAGS+= -m64 -xO3 -xtarget=native -xmemalign=8i \
 					-fma=fused -fns=yes \
 					-xc99 # C99 support
 			LDFLAGS+=-m64
@@ -1193,7 +1192,7 @@ ifeq	($(ARCH), sparc)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=-g $(CC_OPT) -funroll-loops  $(PROFILE) \
+				CFLAGS+=$(CC_OPT) -funroll-loops  $(PROFILE) \
 					#-Wcast-align \
 					#-Wmissing-prototypes
 				#if gcc 5.0+, 4.5+ or 4.2+
@@ -1243,7 +1242,7 @@ endif			#CC_SHORTVER, 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 else		#CC_NAME, gcc
 ifeq		($(CC_NAME), suncc)
 			C_DEFS+=-DCC_GCC_LIKE_ASM
-			CFLAGS+= -g -xO3 -xtarget=native -xmemalign=4i \
+			CFLAGS+=-xO3 -xtarget=native -xmemalign=4i \
 					-fma=fused -fns=yes \
 					-xc99 # C99 support
 			# -Dinline="" # add this if cc < 5.3 (define inline as null)
@@ -1260,7 +1259,7 @@ ifeq	($(ARCH), arm)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=-marm -march=armv5t $(CC_OPT) -funroll-loops -fsigned-char $(PROFILE)
+				CFLAGS+=-marm -march=armv5t $(CC_OPT) -funroll-loops -fsigned-char $(PROFILE)
 			#if gcc 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 					CFLAGS+= -ftree-vectorize -fno-strict-overflow
@@ -1308,7 +1307,7 @@ ifeq	($(ARCH), arm6)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=-march=armv6 $(CC_OPT) -funroll-loops -fsigned-char \
+				CFLAGS+=-march=armv6 $(CC_OPT) -funroll-loops -fsigned-char \
 						$(PROFILE)
 			#if gcc 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
@@ -1355,7 +1354,7 @@ ifeq	($(ARCH), arm7)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff, use armv7-a as lowest common architecture
-				CFLAGS=-march=armv7-a $(CC_OPT) -funroll-loops -fsigned-char \
+				CFLAGS+=-march=armv7-a $(CC_OPT) -funroll-loops -fsigned-char \
 						$(PROFILE)
 			#if gcc 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
@@ -1402,7 +1401,7 @@ ifeq	($(ARCH), mips)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=$(CC_OPT) -funroll-loops  $(PROFILE)
+				CFLAGS+=$(CC_OPT) -funroll-loops  $(PROFILE)
 			#if gcc 9.0+ 8.0+, 7.0+, 6.0, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 					CFLAGS+=-mfp32 -march=r3000 \
@@ -1451,7 +1450,7 @@ ifeq	($(ARCH), mips2)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS= $(CC_OPT) -funroll-loops $(PROFILE)
+				CFLAGS+= $(CC_OPT) -funroll-loops $(PROFILE)
 			#if gcc 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 					CFLAGS+=-ftree-vectorize -fno-strict-overflow
@@ -1497,7 +1496,7 @@ ifeq	($(ARCH), mips64)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS= $(CC_OPT) -funroll-loops $(PROFILE)
+				CFLAGS+= $(CC_OPT) -funroll-loops $(PROFILE)
 			#if gcc 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 					CFLAGS+=-ftree-vectorize -fno-strict-overflow
@@ -1544,7 +1543,7 @@ ifeq	($(ARCH), alpha)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS= $(CC_OPT) -funroll-loops $(PROFILE)
+				CFLAGS+= $(CC_OPT) -funroll-loops $(PROFILE)
 			#if gcc 5.0+, 4.5 or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 					CFLAGS+= -fno-strict-overflow
@@ -1590,7 +1589,7 @@ ifeq	($(ARCH), ppc)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS=
+				CFLAGS+=
 			#if gcc 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 $(call				set_if_empty,CPUTYPE,powerpc)
@@ -1647,7 +1646,7 @@ ifeq	($(ARCH), ppc64)
 ifeq		($(CC_NAME), gcc)
 				C_DEFS+=-DCC_GCC_LIKE_ASM
 				#common stuff
-				CFLAGS= $(CC_OPT) -funroll-loops -fsigned-char $(PROFILE)
+				CFLAGS+= $(CC_OPT) -funroll-loops -fsigned-char $(PROFILE)
 			#if gcc 9.0+ 8.0+, 7.0+, 6.0+, 5.0+, 4.5+ or 4.2+
 ifeq (,$(strip $(filter-out 4.2+ 4.5+ 5.0+ 6.0+ 7.0+ 8.0+ 9.0+,$(CC_SHORTVER))))
 $(call				set_if_empty,CPUTYPE,powerpc64)
@@ -1732,7 +1731,11 @@ endif
 	# -andrei
 
 ifeq ($(CC_NAME), clang)
+ifeq ($(OS), darwin)
+	LDFLAGS+=-Wl,-E $(PROFILE)
+else
 	LDFLAGS+=-Wl,-O2 -Wl,-E $(PROFILE)
+endif
 	MOD_LDFLAGS:=-shared $(LDFLAGS)
 	LIB_LDFLAGS:=-shared $(LDFLAGS)
 	LIB_SONAME=-Wl,-soname,
@@ -1745,7 +1748,7 @@ LIB_LDFLAGS+= $(LD_EXTRA_OPTS) $(LD_PMUTEX_OPTS)
 
 else	#mode,release
 ifeq	($(CC_NAME), gcc)
-		CFLAGS=-g -Wcast-align $(PROFILE)
+		CFLAGS+=-Wcast-align $(PROFILE)
 		C_DEFS+=-DCC_GCC_LIKE_ASM
 ifeq		($(ARCH), sparc64)
 			C_DEFS+=SPARC64_MODE
@@ -1754,14 +1757,14 @@ ifeq		($(ARCH), sparc64)
 endif
 ifeq		($(LDTYPE), solaris)
 			#solaris ld
-			LDFLAGS+=-g $(PROFILE)
+			LDFLAGS+=$(PROFILE)
 			MOD_LDFLAGS:=-G $(LDFLAGS)
 			LIB_LDFLAGS:=-G $(LDFLAGS)
 			LIB_SONAME=-Wl,-h,
 			LD_RPATH=-Wl,-R,
 else
 			#gnu or other ld type
-			LDFLAGS+=-g -Wl,-E $(PROFILE)
+			LDFLAGS+=-Wl,-E $(PROFILE)
 			MOD_LDFLAGS:=-shared $(LDFLAGS)
 			LIB_LDFLAGS:=-shared $(LDFLAGS)
 			LIB_SONAME=-Wl,-soname,
@@ -1770,16 +1773,16 @@ endif
 endif
 ifeq	($(CC_NAME), icc)
 		C_DEFS+=-DCC_GCC_LIKE_ASM
-		CFLAGS=-g  $(PROFILE)
-		LDFLAGS+=-g -Wl,-E $(PROFILE)
+		CFLAGS+=$(PROFILE)
+		LDFLAGS+=-Wl,-E $(PROFILE)
 		MOD_LDFLAGS:=-shared $(LDFLAGS)
 		LIB_LDFLAGS:=-shared $(LDFLAGS)
 		LIB_SONAME=-Wl,-soname,
 		LD_RPATH=-Wl,-rpath,
 endif
 ifeq	($(CC_NAME), suncc)
-		CFLAGS= -g $(PROFILE)
-		LDFLAGS+=-g $(PROFILE)
+		CFLAGS+=$(PROFILE)
+		LDFLAGS+=$(PROFILE)
 		MOD_LDFLAGS:=-G $(LDFLAGS)
 		LIB_LDFLAGS:=-G $(LDFLAGS)
 		LIB_SONAME=-Wl,-h,
@@ -1874,7 +1877,7 @@ ifeq ($(OS), linux)
 	# check for >= 2.2.0
 	ifeq ($(shell [ $(OSREL_N) -ge 2002000 ] && echo has_sigio), has_sigio)
 		ifeq ($(NO_SIGIO),)
-			C_DEFS+=-DHAVE_SIGIO_RT -DSIGINFO64_WORKARROUND
+			C_DEFS+=-DHAVE_SIGIO_RT -DSIGINFO64_WORKAROUND
 		endif
 	endif
 	# check for >= 2.5.70
@@ -1885,6 +1888,13 @@ ifeq ($(OS), linux)
 	endif
 	ifeq ($(NO_SELECT),)
 		C_DEFS+=-DHAVE_SELECT
+	endif
+	ifeq ($(CC_NAME), gcc)
+		# link librt for glibc <= 2.17
+		GLIBCVER=$(shell ldd --version | head -1 | sed -e 's/^.* //' -e 's/\.//' )
+		ifeq ($(shell [ $(GLIBCVER) -le 217 ] && echo librt), librt)
+			LIBS+=-lrt
+		endif
 	endif
 endif
 
@@ -2202,4 +2212,3 @@ export $(saved_chg_vars)
 
 endif # ifneq ($(exported_vars),1)
 endif # ifeq ($(makefile_defs),1)
-

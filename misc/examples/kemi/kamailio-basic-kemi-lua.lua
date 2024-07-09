@@ -80,17 +80,19 @@ function ksr_request_route()
 		return 1;
 	end
 
+	-- handle retransmissions
+	if not KSR.is_ACK() then
+		if KSR.tmx.t_precheck_trans()>0 then
+			KSR.tm.t_check_trans();
+			return 1;
+		end
+		if KSR.tm.t_check_trans()==0 then return 1 end
+	end
+
 	-- handle requests within SIP dialogs
 	ksr_route_withindlg();
 
 	-- -- only initial requests (no To tag)
-
-	-- handle retransmissions
-	if KSR.tmx.t_precheck_trans()>0 then
-		KSR.tm.t_check_trans();
-		return 1;
-	end
-	if KSR.tm.t_check_trans()==0 then return 1 end
 
 	-- authentication
 	ksr_route_auth();
@@ -118,7 +120,7 @@ function ksr_request_route()
 
 	if KSR.corex.has_ruri_user() < 0 then
 		-- request with no Username in RURI
-		KSR.sl.sl_send_reply(484,"Address Incomplete");
+		KSR.sl.sl_send_reply(484, "Address Incomplete");
 		return 1;
 	end
 
@@ -158,6 +160,11 @@ end
 
 -- Per SIP request initial checks
 function ksr_route_reqinit()
+	-- no connect for sending replies
+	KSR.set_reply_no_connect();
+	-- enforce symmetric signaling
+	-- send back replies to the source address of request
+	KSR.force_rport();
 	if not KSR.is_myself_srcip() then
 		local srcip = KSR.kx.get_srcip();
 		if KSR.htable.sht_match_name("ipban", "eq", srcip) > 0 then
@@ -177,25 +184,26 @@ function ksr_route_reqinit()
 	end
 	local ua = KSR.kx.gete_ua();
 	if string.find(ua, "friendly") or string.find(ua, "scanner")
-			or string.find(ua, "sipcli") or string.find(ua, "sipvicious") then
+			or string.find(ua, "sipcli") or string.find(ua, "sipvicious")
+			or string.find(ua, "VaxSIPUserAgent") or string.find(ua, "pplsip") then
 		KSR.sl.sl_send_reply(200, "OK");
 		KSR.x.exit();
 	end
 
 	if KSR.maxfwd.process_maxfwd(10) < 0 then
-		KSR.sl.sl_send_reply(483,"Too Many Hops");
+		KSR.sl.sl_send_reply(483, "Too Many Hops");
 		KSR.x.exit();
 	end
 
 	if KSR.is_OPTIONS()
 			and KSR.is_myself_ruri()
 			and KSR.corex.has_ruri_user() < 0 then
-		KSR.sl.sl_send_reply(200,"Keepalive");
+		KSR.sl.sl_send_reply(200, "Keepalive");
 		KSR.x.exit();
 	end
 
-	if KSR.sanity.sanity_check(1511, 7)<0 then
-		KSR.err("Malformed SIP message from "
+	if KSR.sanity.sanity_check(17895, 7)<0 then
+		KSR.err("malformed SIP message from "
 				.. KSR.kx.get_srcip() .. ":" .. KSR.kx.get_srcport() .."\n");
 		KSR.x.exit();
 	end
@@ -207,7 +215,7 @@ end
 function ksr_route_withindlg()
 	if KSR.siputils.has_totag()<0 then return 1; end
 
-	-- sequential request withing a dialog should
+	-- sequential request within a dialog should
 	-- take the path determined by record-routing
 	if KSR.rr.loose_route()>0 then
 		ksr_route_dlguri();
@@ -307,7 +315,7 @@ function ksr_route_auth()
 	-- a local destination, otherwise deny, not an open relay here
 	if (not KSR.is_myself_furi())
 			and (not KSR.is_myself_ruri()) then
-		KSR.sl.sl_send_reply(403,"Not relaying");
+		KSR.sl.sl_send_reply(403, "Not relaying");
 		KSR.x.exit();
 	end
 
@@ -319,7 +327,6 @@ function ksr_route_natdetect()
 	if not KSR.nathelper then
 		return 1;
 	end
-	KSR.force_rport();
 	if KSR.nathelper.nat_uac_test(19)>0 then
 		if KSR.is_REGISTER() then
 			KSR.nathelper.fix_nated_register();
@@ -333,7 +340,7 @@ end
 
 -- RTPProxy control
 function ksr_route_natmanage()
-	if not KSR.rtpproxy then
+	if not KSR.rtpproxy and not KSR.rtpengine then
 		return 1;
 	end
 	if KSR.siputils.is_request()>0 then
@@ -347,7 +354,19 @@ function ksr_route_natmanage()
 		return 1;
 	end
 
-	KSR.rtpproxy.rtpproxy_manage("co");
+	if KSR.kx.ifdef('WITH_RTPENGINE') then
+		if KSR.nathelper.nat_uac_test(8)>0 then
+			KSR.rtpengine.rtpengine_manage("replace-origin replace-session-connection SIP-source-address");
+		else
+			KSR.rtpengine.rtpengine_manage("replace-origin replace-session-connection");
+		end
+	else
+		if KSR.nathelper.nat_uac_test(8)>0 then
+			KSR.rtpproxy.rtpproxy_manage("co");
+		else
+			KSR.rtpproxy.rtpproxy_manage("cor");
+		end
+	end
 
 	if KSR.siputils.is_request()>0 then
 		if KSR.siputils.has_totag()<0 then
@@ -418,6 +437,11 @@ end
 -- SIP response handling
 -- equivalent of reply_route{}
 function ksr_reply_route()
-	KSR.info("===== response - from kamailio lua script\n");
+	KSR.dbg("response - from kamailio lua script\n");
+	if KSR.sanity.sanity_check(17604, 6)<0 then
+		KSR.err("malformed SIP response from "
+				.. KSR.kx.get_srcip() .. ":" .. KSR.kx.get_srcport() .."\n");
+		KSR.x.drop();
+	end
 	return 1;
 end

@@ -20,6 +20,7 @@ changes to this document in a pull request.
       * [Commit Message Examples](#commit-message-examples)
       * [See Also](#see-also)
   * [Reporting Issues](#reporting-issues)
+  * [Issue And PR Automatic Management](#issue-and-pr-automatic-management)
   * [License](#license)
     * [License Of New Code Contributions](#license-of-new-code-contributions)
   * [Further Assistance](#further-assistance)
@@ -29,7 +30,7 @@ changes to this document in a pull request.
 Kamailio is a community managed project, with developers world wide. Any
 contribution to code or documentation is very welcome and appreciated.
 
-In order to be easily able to track the changes and have a coherent ChangLog
+In order to be easily able to track the changes and have a coherent ChangeLog
 and commit history, there are several *rules* required for each contribution.
 
 ## Contributing Code Or Content ##
@@ -81,7 +82,7 @@ and commit history, there are several *rules* required for each contribution.
 
 Please create the commit messages following the GIT convention:
 
-  * start with one short line, preferably less then 50 chars summarizing the
+  * start with one short line, preferably less than 50 chars summarizing the
   changes (this is referred later as "first line of the commit message")
   * then one empty line
   * then a more detailed description (the "commit message content")
@@ -116,7 +117,7 @@ changes were done.
 At the end of the first line some CI flags can be added. Available at this
 moment:
 
-  * `[skip ci]` - skip continous integration builds for source code, recommended
+  * `[skip ci]` - skip continuous integration builds for source code, recommended
   to be added when updating documentation, example configs or other utilities.
   Example:
     * `msilo: docs - updated example for m_dump() function [skip ci]`
@@ -207,7 +208,7 @@ etc: kamailio.cfg - set load_backends to 1 for permissions module
   * http://www.tpope.net/node/106
 
 The above content about commit message format is taken from Kamailio wiki page:
-  * https://www.kamailio.org/wiki/devel/git-commit-guidelines
+  * https://www.kamailio.org/wikidocs/devel/git-commit-guidelines
   * it is recommended you read that one as well.
 
 ### Developer Access ###
@@ -251,6 +252,32 @@ Note: replace any sensitive information in the content you add to the issue
 (e.g., passwords in modparams can be replaced with xyz, each IP address can be
 replaced with tokens like a.b.c.d, f.g.h.j).
 
+## Issue And PR Automatic Management ##
+
+This section presents details about the automatic management of potential bug
+reports and requests for new features using github actions.
+
+Kamailio is an open source collaborative project, in order to be fair for those
+that volunteer to spend time and resources for development of Kamailio, the users
+have to stay engaged, not just report and forget about.
+
+To reduce the work load on volunteering contributors, GitHub Actions are used
+for various tasks related to project development and management (e.g., automatic
+builds on commits and pull requests to detect compile errors or code formatting
+mistakes).
+
+One task managed with GitHub Actions is related to the check of open
+issues and pull requests to evaluate the interest of submitter, developers and
+community users. If there is no activity on an issue (potential bug or feature
+request) or a pull request, after 6 weeks it is marked with the label `stale`.
+After two more weeks of no activity, the issue or the pull request is marked
+with the label `expired` and closed.
+
+A registered developer can remove labels and reopen a closed issue or pull
+request. The other contributors have to make a comment that includes the token
+`/notstale` to remove the label `stale` or includes the token `/notexpired` to
+reopen a closed item.
+
 ## License ##
 
 Kamailio Main License: *GPLv2*.
@@ -270,4 +297,4 @@ released under BSD must be done under BSD as well.
 
 For any question, do not hesitate to contact other developers via mailing list:
 
-  * **[sr-dev [at] lists.kamailio.org](http://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-dev)**
+  * **[sr-dev [at] lists.kamailio.org](https://lists.kamailio.org/mailman3/postorius/lists/sr-dev.lists.kamailio.org/)**

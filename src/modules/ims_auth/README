@@ -156,7 +156,7 @@ Chapter 1. Admin Guide
 
 2.2. External Libraries or Applications
 
-   This modules requires the internal IMS library.
+   This module requires the internal IMS library.
 
 3. Parameters
 
@@ -215,7 +215,7 @@ modparam("ims_auth", "auth_vector_timeout", "domain")
 
 3.4. auth_data_timeout (int)
 
-   Time, in seconds, an used auth vector is valid for.
+   Time, in seconds, a used auth vector is valid for.
 
    Default value is “60”.
 

@@ -56,6 +56,8 @@ int escape_common(char *dst, char *src, int src_len);
 
 /* remove backslashes to special characters */
 int unescape_common(char *dst, char *src, int src_len);
+int escape_crlf(str *sin, str *sout);
+int unescape_crlf(str *sin, str *sout);
 int escape_user(str *sin, str *sout);
 int unescape_user(str *sin, str *sout);
 int escape_param(str *sin, str *sout);
@@ -66,4 +68,6 @@ char hex_to_char(char hex_code);
 char char_to_hex(char char_code);
 int urlencode(str *sin, str *sout);
 int urldecode(str *sin, str *sout);
+
+void ksr_str_json_escape(str *s_in, str *s_out, int *emode);
 #endif

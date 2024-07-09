@@ -6,7 +6,7 @@
  *
  * The initial version of this code was written by Dragos Vingarzan
  * (dragos(dot)vingarzan(at)fokus(dot)fraunhofer(dot)de and the
- * Fruanhofer Institute. It was and still is maintained in a separate
+ * Fraunhofer FOKUS Institute. It was and still is maintained in a separate
  * branch of the original SER. We are therefore migrating it to
  * Kamailio/SR and look forward to maintaining it from here on out.
  * 2011/2012 Smile Communications, Pty. Ltd.
@@ -16,7 +16,7 @@
  * effort to add full IMS support to Kamailio/SR using a new and
  * improved architecture
  *
- * NB: Alot of this code was originally part of OpenIMSCore,
+ * NB: A lot of this code was originally part of OpenIMSCore,
  * FhG Fokus.
  * Copyright (C) 2004-2006 FhG Fokus
  * Thanks for great work! This is an effort to
@@ -44,7 +44,7 @@
  */
 
 #ifndef SERVER_ASSIGNMENT_H
-#define	SERVER_ASSIGNMENT_H
+#define SERVER_ASSIGNMENT_H
 
 #include "ims_registrar_scscf_mod.h"
 #include "../cdp/diameter.h"
@@ -54,10 +54,9 @@
 extern struct cxdx_binds cxdxb;
 
 
-int scscf_assign_server(struct sip_msg *msg,
-		str public_identity, str private_identity, int assignment_type,
-		int data_available, saved_transaction_t* transaction_data);
+int scscf_assign_server(struct sip_msg *msg, str public_identity,
+		str private_identity, int assignment_type, int data_available,
+		saved_transaction_t *transaction_data);
 
 
-#endif	/* SERVER_ASSIGNMENT_H */
-
+#endif /* SERVER_ASSIGNMENT_H */

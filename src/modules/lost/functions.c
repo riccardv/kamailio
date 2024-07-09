@@ -1,7 +1,7 @@
 /*
  * lost module functions
  *
- * Copyright (C) 2021 Wolfgang Kampichler
+ * Copyright (C) 2023 Wolfgang Kampichler
  * DEC112, FREQUENTIS AG
  *
  * This file is part of Kamailio, a free SIP server.
@@ -67,6 +67,7 @@ extern httpc_api_t httpapi;
 
 extern int lost_geoloc_type;
 extern int lost_geoloc_order;
+extern int lost_geoloc_3d;
 extern int lost_verbose;
 extern int held_resp_time;
 extern int held_exact_type;
@@ -296,7 +297,7 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 		/* we have no connection ... do a NAPTR lookup */
 		if(lost_parse_host(did.s, &host, &flag) > 0) {
 
-			LM_DBG("no conn. trying NATPR lookup [%.*s]\n", host.len, host.s);
+			LM_DBG("no conn. trying NAPTR lookup [%.*s]\n", host.len, host.s);
 
 			/* remove '[' and ']' from string (IPv6) */
 			if(flag == AF_INET6) {
@@ -338,7 +339,7 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 			goto err;
 		}
 
-		LM_DBG("NATPR lookup returned [%.*s]\n", url.len, url.s);
+		LM_DBG("NAPTR lookup returned [%.*s]\n", url.len, url.s);
 
 		/* curl doesn't like str */
 		len = 0;
@@ -349,7 +350,7 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 		}
 		/* send to service */
 		curl = httpapi.http_client_query_c(
-					_m, lisurl, &res, que.s, mtheld, ACCEPT_HDR);
+				_m, lisurl, &res, que.s, mtheld, ACCEPT_HDR);
 		pkg_free(lisurl); /*clean up */
 		lisurl = NULL;
 	}
@@ -380,7 +381,9 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 			XML_PARSE_NOBLANKS | XML_PARSE_NONET | XML_PARSE_NOCDATA);
 	if(doc == NULL) {
 		LM_WARN("invalid xml document: [%.*s]\n", res.len, res.s);
-		doc = xmlRecoverMemory(res.s, res.len);
+		doc = xmlReadMemory(res.s, res.len, 0, NULL,
+				XML_PARSE_NOBLANKS | XML_PARSE_NONET |
+				XML_PARSE_NOCDATA | XML_PARSE_RECOVER);
 		if(doc == NULL) {
 			LM_ERR("xml document recovery failed on: [%.*s]\n", res.len, res.s);
 			goto err;
@@ -440,11 +443,11 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 					LM_ERR("could not create POST request\n");
 					goto err;
 				}
-				
+
 				LM_DBG("held POST request: [%.*s]\n", len, heldreq);
 
 				curl = httpapi.http_client_query_c(
-							_m, geo.s, &pidfurl, heldreq, mtheld, ACCEPT_HDR);
+						_m, geo.s, &pidfurl, heldreq, mtheld, ACCEPT_HDR);
 				pkg_free(heldreq); /* clean up */
 				heldreq = NULL;
 			}
@@ -466,7 +469,7 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 				res.len = pidfurl.len;
 			}
 		}
-	/* error received */
+		/* error received */
 	} else if(xmlStrcmp(root->name, (const xmlChar *)"error") == 0) {
 
 		LM_DBG("HELD error response [%.*s]\n", res.len, res.s);
@@ -505,8 +508,8 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 	psurl = (pv_spec_t *)_url;
 	psurl->setf(_m, &psurl->pvp, (int)EQ_T, &pvurl);
 	lost_free_string(&geo); /* clean up */
- 
- 	/* return error code in case of response error */
+
+	/* return error code in case of response error */
 	if(err.len > 0) {
 		res_error = 1;
 	}
@@ -524,7 +527,7 @@ int lost_held_function(struct sip_msg *_m, char *_con, char *_pidf, char *_url,
 err:
 	/* clean up pointer */
 	lost_free_string(&que);
-    lost_free_string(&idhdr);
+	lost_free_string(&idhdr);
 	lost_free_string(&pidfurl);
 	/* clean up xml */
 	if(doc != NULL) {
@@ -540,7 +543,7 @@ err:
 	if(err.s != NULL && err.len > 0) {
 		lost_free_string(&err);
 	}
-	
+
 	return LOST_CLIENT_ERROR;
 }
 
@@ -614,7 +617,7 @@ int lost_held_dereference(struct sip_msg *_m, char *_url, char *_pidf,
 			if((ltime > 0) && (strlen(ptr) == 0)) {
 				/* responseTime: milliseconds */
 				rtime = ltime;
-			/* or a string */ 
+				/* or a string */
 			} else if((ltime == 0) && (strlen(ptr) > 0)) {
 				if(strncasecmp(ptr, HELD_ED, strlen(HELD_ED)) == 0) {
 					/* responseTime: emergencyDispatch */
@@ -676,7 +679,7 @@ int lost_held_dereference(struct sip_msg *_m, char *_url, char *_pidf,
 	LM_DBG("POST url: [%.*s]\n", len, lisurl);
 
 	curl = httpapi.http_client_query_c(
-				_m, lisurl, &res, heldreq, mtheld, ACCEPT_HDR);
+			_m, lisurl, &res, heldreq, mtheld, ACCEPT_HDR);
 	pkg_free(lisurl); /* clean up */
 	lisurl = NULL;
 	pkg_free(heldreq);
@@ -701,7 +704,9 @@ int lost_held_dereference(struct sip_msg *_m, char *_url, char *_pidf,
 			XML_PARSE_NOBLANKS | XML_PARSE_NONET | XML_PARSE_NOCDATA);
 	if(doc == NULL) {
 		LM_WARN("invalid xml document: [%.*s]\n", res.len, res.s);
-		doc = xmlRecoverMemory(res.s, res.len);
+		doc = xmlReadMemory(res.s, res.len, 0, NULL,
+				XML_PARSE_NOBLANKS | XML_PARSE_NONET |
+				XML_PARSE_NOCDATA | XML_PARSE_RECOVER);
 		if(doc == NULL) {
 			LM_ERR("xml document recovery failed on: [%.*s]\n", res.len, res.s);
 			goto err;
@@ -728,7 +733,7 @@ int lost_held_dereference(struct sip_msg *_m, char *_url, char *_pidf,
 		 * + 3 value and reference found: return 203
 		 */
 		ret += lost_check_HeldResponse(root);
-	/* error received */
+		/* error received */
 	} else if(xmlStrcmp(root->name, (const xmlChar *)"error") == 0) {
 
 		LM_DBG("HELD error response [%.*s]\n", res.len, res.s);
@@ -819,7 +824,9 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 	str req = STR_NULL;
 	str con = STR_NULL;
 	str ret = STR_NULL;
+	str src = STR_NULL;
 	str pidf = STR_NULL;
+	str rereq = STR_NULL;
 	str oldurl = STR_NULL;
 	str losturl = STR_NULL;
 
@@ -1017,7 +1024,7 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 				LM_DBG("POST request: [%.*s]\n", len, heldreq);
 
 				curl = httpapi.http_client_query_c(
-							_m, url.s, &ret, heldreq, mtheld, ACCEPT_HDR);
+						_m, url.s, &ret, heldreq, mtheld, ACCEPT_HDR);
 				pkg_free(heldreq); /* clean up */
 				heldreq = NULL;
 			}
@@ -1063,8 +1070,7 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 		goto err;
 	}
 	/* assemble findService request */
-	req.s = lost_find_service_request(loc, &req.len);
-	lost_free_loc(&loc); /* clean up */
+	req.s = lost_find_service_request(loc, NULL, &req.len);
 
 	if(req.s == NULL && req.len == 0) {
 		LM_ERR("lost request failed\n");
@@ -1113,26 +1119,38 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 
 	LM_DBG("findService response: [%.*s]\n", ret.len, ret.s);
 
-	/* at least parse one request */
+	/* at least parse one response */
 	redirect = 1;
 	while(redirect) {
 		fsrdata = lost_parse_findServiceResponse(ret);
-		if (lost_verbose == 1) {
+		if(lost_verbose == 1) {
 			lost_print_findServiceResponse(fsrdata);
 		}
 		switch(fsrdata->category) {
 			case RESPONSE:
 				if(fsrdata->uri != NULL) {
-					/* get the first uri element */
-					if((tmp.s = fsrdata->uri->value) != NULL) {
-						tmp.len = strlen(fsrdata->uri->value);
-						if(pkg_str_dup(&uri, &tmp) < 0) {
-							LM_ERR("could not copy: [%.*s]\n", tmp.len, tmp.s);
-							goto err;
-						}
+					/* get the first sips uri element ... */
+					if(lost_search_response_list(&fsrdata->uri, &tmp.s, SIPS_S)
+							> 0) {
+						tmp.len = strlen(tmp.s);
+						/* or the first sip uri element ... */
+					} else if(lost_search_response_list(
+									  &fsrdata->uri, &tmp.s, SIP_S)
+							  > 0) {
+						tmp.len = strlen(tmp.s);
+						/* or return error if nothing found */
+					} else {
+						LM_ERR("sip/sips uri not found: [%.*s]\n", ret.len,
+								ret.s);
+						goto err;
+					}
+					/* copy uri string */
+					if(pkg_str_dup(&uri, &tmp) < 0) {
+						LM_ERR("could not copy: [%.*s]\n", tmp.len, tmp.s);
+						goto err;
 					}
 				} else {
-					LM_ERR("uri not found: [%.*s]\n", ret.len, ret.s);
+					LM_ERR("uri element not found: [%.*s]\n", ret.len, ret.s);
 					goto err;
 				}
 				if(fsrdata->mapping != NULL) {
@@ -1178,6 +1196,43 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 						tmp.len = strlen(fsrdata->redirect->target);
 						url.s = &(ustr[0]);
 						url.len = MAX_URI_SIZE;
+						/* check loop ... current response */
+						if(oldurl.s != NULL && oldurl.len > 0) {
+							if(str_strcasecmp(&tmp, &oldurl) == 0) {
+								LM_ERR("loop detected: "
+									   "[%.*s]<-->[%.*s]\n",
+										oldurl.len, oldurl.s, tmp.len, tmp.s);
+								goto err;
+							}
+						}
+						/* add redirecting source to path list */
+						if((src.s = fsrdata->redirect->source) != NULL) {
+							src.len = strlen(fsrdata->redirect->source);
+							if(lost_append_response_list(&fsrdata->path, src)
+									== 0) {
+								LM_ERR("could not append server to path "
+									   "elememt\n");
+								goto err;
+							}
+						}
+						/* clean up */
+						src.s = NULL;
+						src.len = 0;
+						/* check loop ... path elements */
+						char *via = NULL;
+						if(lost_search_response_list(
+								   &fsrdata->path, &via, tmp.s)
+								> 0) {
+							LM_ERR("loop detected: "
+								   "[%s]<-->[%.*s]\n",
+									via, tmp.len, tmp.s);
+							goto err;
+						}
+						/* remember the redirect target */
+						if(pkg_str_dup(&oldurl, &tmp) < 0) {
+							LM_ERR("could not copy: [%.*s]\n", tmp.len, tmp.s);
+							goto err;
+						}
 						/* get url string via NAPTR */
 						naptr = lost_naptr_lookup(tmp, &shttps, &url);
 						if(naptr == 0) {
@@ -1192,23 +1247,17 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 						/* clean up */
 						tmp.s = NULL;
 						tmp.len = 0;
-						/* check loop */
-						if(oldurl.s != NULL && oldurl.len > 0) {
-							if(str_strcasecmp(&url, &oldurl) == 0) {
-								LM_ERR("loop detected: "
-									   "[%.*s]<-->[%.*s]\n",
-										oldurl.len, oldurl.s, url.len, url.s);
-								goto err;
-							}
-						}
-						/* remember the redirect target */
-						if(pkg_str_dup(&oldurl, &url) < 0) {
-							LM_ERR("could not copy: [%.*s]\n", url.len, url.s);
-							goto err;
-						}
+
+						/* assemble new findService request including path element */
+						rereq.s = lost_find_service_request(
+								loc, fsrdata->path, &rereq.len);
 						/* clean up */
 						lost_free_findServiceResponse(&fsrdata);
 						lost_free_string(&ret);
+
+						LM_DBG("findService request: [%.*s]\n", rereq.len,
+								rereq.s);
+
 						/* copy url */
 						len = 0;
 						urlrep = lost_copy_string(url, &len);
@@ -1218,13 +1267,16 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 						}
 						/* send request */
 						curl = httpapi.http_client_query(
-								_m, urlrep, &ret, req.s, mtlost);
-						pkg_free(urlrep); /*clean up */
+								_m, urlrep, &ret, rereq.s, mtlost);
+						/*clean up */
+						pkg_free(urlrep);
 						urlrep = NULL;
+						lost_free_string(&rereq);
+
 						/* only HTTP 2xx responses are accepted */
 						if(curl >= 300 || curl < 100) {
 							LM_ERR("POST [%.*s] failed with error: %d\n",
-								url.len, url.s, curl);
+									url.len, url.s, curl);
 							goto err;
 						}
 						/* reset url string */
@@ -1252,6 +1304,7 @@ int lost_function(struct sip_msg *_m, char *_con, char *_uri, char *_name,
 	lost_free_string(&ret);
 	lost_free_string(&req);
 	lost_free_string(&oldurl);
+	lost_free_loc(&loc);
 
 	/* set writable pvars */
 	pvname.rs = name;
@@ -1301,6 +1354,9 @@ err:
 	}
 	if(req.s != NULL && req.len > 0) {
 		lost_free_string(&req);
+	}
+	if(rereq.s != NULL && rereq.len > 0) {
+		lost_free_string(&rereq);
 	}
 	if(name.s != NULL && name.len > 0) {
 		lost_free_string(&name);

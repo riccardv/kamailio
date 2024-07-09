@@ -2,7 +2,7 @@
  * pv_headers
  *
  * Copyright (C)
- * 2020 Victor Seva <vseva@sipwise.com>
+ * 2020-2023 Victor Seva <vseva@sipwise.com>
  * 2018 Kirill Solomko <ksolomko@sipwise.com>
  *
  * This file is part of Kamailio, a free SIP server.
@@ -38,5 +38,7 @@ int pvh_check_header(struct sip_msg *msg, str *hname);
 int pvh_append_header(struct sip_msg *msg, str *hname, str *hvalue);
 int pvh_modify_header(struct sip_msg *msg, str *hname, str *hvalue, int indx);
 int pvh_remove_header(struct sip_msg *msg, str *hname, int indx);
+int pvh_header_param_exists(struct sip_msg *msg, str *hname, str *hvalue);
+int pvh_remove_header_param_helper(str *orig, const str *toRemove, str *dst);
 
 #endif /* PV_FUNC_H */

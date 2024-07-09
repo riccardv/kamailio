@@ -20,6 +20,10 @@ Carsten Bock
    ng-voice GmbH
    <carsten@ng-voice.com>
 
+Dragos Vingarzan
+
+   <vingarzan -at- gmail dot com>
+
    Copyright © 2007 FhG FOKUS
 
    Copyright © 2012 Smile Communications
@@ -57,6 +61,17 @@ Carsten Bock
               3.14. terminate_dialog_on_rx_failure integer
               3.15. delete_contact_on_rx_failure integer
               3.16. include_rtcp_fd integer
+              3.17. af_signaling_ip (String)
+              3.18. af_signaling_ip6 (String)
+              3.19. media_type (String)
+              3.20. flow_protocol (String)
+              3.21. omit_flow_ports integer
+              3.22. rs_default_bandwidth integer
+              3.23. rr_default_bandwidth integer
+              3.24. suspend_transaction integer
+              3.25. recv_mode integer
+              3.26. dialog_direction integer
+              3.27. trust_bottom_via (int)
 
         4. Functions
 
@@ -87,8 +102,19 @@ Carsten Bock
    1.14. terminate_dialog_on_rx_failure parameter usage
    1.15. delete_contact_on_rx_failure parameter usage
    1.16. include_rtcp_fd parameter usage
-   1.17. Rx_AAR_Register
-   1.18. Rx_AAR
+   1.17. af_signaling_ip parameter usage
+   1.18. af_signaling_ip6 parameter usage
+   1.19. media_type parameter usage
+   1.20. flow_protocol parameter usage
+   1.21. omit_flow_ports parameter usage
+   1.22. rs_default_bandwidth parameter usage
+   1.23. rr_default_bandwidth parameter usage
+   1.24. suspend_transaction parameter usage
+   1.25. recv_mode parameter usage
+   1.26. dialog_direction parameter usage
+   1.27. trust_bottom_via parameter usage
+   1.28. Rx_AAR_Register
+   1.29. Rx_AAR
 
 Chapter 1. Admin Guide
 
@@ -118,6 +144,17 @@ Chapter 1. Admin Guide
         3.14. terminate_dialog_on_rx_failure integer
         3.15. delete_contact_on_rx_failure integer
         3.16. include_rtcp_fd integer
+        3.17. af_signaling_ip (String)
+        3.18. af_signaling_ip6 (String)
+        3.19. media_type (String)
+        3.20. flow_protocol (String)
+        3.21. omit_flow_ports integer
+        3.22. rs_default_bandwidth integer
+        3.23. rr_default_bandwidth integer
+        3.24. suspend_transaction integer
+        3.25. recv_mode integer
+        3.26. dialog_direction integer
+        3.27. trust_bottom_via (int)
 
    4. Functions
 
@@ -146,7 +183,7 @@ Chapter 1. Admin Guide
 2.1. Kamailio Modules
 
    The Following modules must be loaded before this module:
-     * Dialog
+     * IMS Dialog
      * Usrloc PCSCF
      * TM - Transaction Manager
      * CDP - C Diameter Peer
@@ -154,7 +191,7 @@ Chapter 1. Admin Guide
 
 2.2. External Libraries or Applications
 
-   This modules requires the internal IMS library.
+   This module requires the internal IMS library.
 
 3. Parameters
 
@@ -174,6 +211,17 @@ Chapter 1. Admin Guide
    3.14. terminate_dialog_on_rx_failure integer
    3.15. delete_contact_on_rx_failure integer
    3.16. include_rtcp_fd integer
+   3.17. af_signaling_ip (String)
+   3.18. af_signaling_ip6 (String)
+   3.19. media_type (String)
+   3.20. flow_protocol (String)
+   3.21. omit_flow_ports integer
+   3.22. rs_default_bandwidth integer
+   3.23. rr_default_bandwidth integer
+   3.24. suspend_transaction integer
+   3.25. recv_mode integer
+   3.26. dialog_direction integer
+   3.27. trust_bottom_via (int)
 
 3.1. rx_dest_realm (string)
 
@@ -307,7 +355,7 @@ modparam("ims_qos", "video_default_bandwidth", 256)
    This sets the default Reason, when a call is terminated in early stage
    due to QoS-failure.
 
-   Default value is "QoS released", an call in early stage would be
+   Default value is "QoS released", a call in early stage would be
    released with "488 QoS released".
 
    Example 1.11. early_qosrelease_reason parameter usage
@@ -317,7 +365,7 @@ modparam("ims_qos", "early_qosrelease_reason", "Sorry - QoS failed")
 
 3.12. confirmed_qosrelease_headers (String)
 
-   These headers are added to the BYE-Message, when an confirmed call is
+   These headers are added to the BYE-Message, when a confirmed call is
    terminated due to a QoS failure.
 
    Default value is "", no Extra-Headers
@@ -383,6 +431,160 @@ modparam("ims_qos", "delete_contact_on_rx_failure", 0)
 modparam("ims_qos", "include_rtcp_fd", 1)
 ...
 
+3.17. af_signaling_ip (String)
+
+   Set P-CSCF IPv4 address to generate the flows for the UE - PCSCF
+   signaling path. Used only for AAR register, Flow-Description AVP (507)
+
+   Default value is 127.0.0.1
+
+   Example 1.17. af_signaling_ip parameter usage
+...
+modparam("ims_qos", "af_signaling_ip", "127.0.0.1")
+...
+
+3.18. af_signaling_ip6 (String)
+
+   Set P-CSCF IPv6 address to generate the flows for the UE - PCSCF
+   signaling path. Used only for AAR register, Flow-Description AVP (507)
+
+   Default value is ""
+
+   Example 1.18. af_signaling_ip6 parameter usage
+...
+modparam("ims_qos", "af_signaling_ip6", "fd16::205:2dee:ce4a:ab22")
+...
+
+3.19. media_type (String)
+
+   Describe Media Type AVP(520) for AAR register
+
+   Default value is 'control'
+
+   Example 1.19. media_type parameter usage
+...
+modparam("ims_qos", "media_type", "audio")
+...
+
+3.20. flow_protocol (String)
+
+   Describe Flow protocol for Flow-Description AVP (507). Used only for
+   AAR register
+
+   Default value is 'IP'
+
+   Example 1.20. flow_protocol parameter usage
+...
+modparam("ims_qos", "flow_protocol", "UDP")
+...
+
+3.21. omit_flow_ports integer
+
+   If set to 1 ommit ports for Flow-Description AVP (507). Used only for
+   AAR register
+
+   Default value is 0, Add ports to Flow-Description AVP (507)
+
+   Example 1.21. omit_flow_ports parameter usage
+...
+modparam("ims_qos", "omit_flow_ports", 1)
+...
+
+3.22. rs_default_bandwidth integer
+
+   Describe default RS-Bandwidth AVP(522) for AAR
+
+   Default value is 0
+
+   Example 1.22. rs_default_bandwidth parameter usage
+...
+modparam("ims_qos", "rs_default_bandwidth", 600)
+...
+
+3.23. rr_default_bandwidth integer
+
+   Describe default RR-Bandwidth AVP(521) for AAR
+
+   Default value is 0
+
+   Example 1.23. rr_default_bandwidth parameter usage
+...
+modparam("ims_qos", "rr_default_bandwidth", 2000)
+...
+
+3.24. suspend_transaction integer
+
+   If enabled, suspends the tm transaction while doing the AAR.
+
+   Default value is 1 (enabled)
+
+   Example 1.24. suspend_transaction parameter usage
+...
+modparam("ims_qos", "suspend_transaction", 0)
+...
+
+3.25. recv_mode integer
+
+   If set to 0, rx_aar_register() takes the received-from address values
+   (IP, port, proto) from the IP frame. If set to 1, it takes them from
+   Via header.
+
+   Default value is 0
+
+   Example 1.25. recv_mode parameter usage
+...
+modparam("ims_qos", "recv_mode", 1)
+...
+
+3.26. dialog_direction integer
+
+   If set to 1, DLG_MOBILE_ORIGINATING is set to
+   rx_add_media_component_description_avp() instead of DLG_MOBILE_REGISTER
+   (which corresponds to value 3).
+
+   Default value is 3
+
+   Example 1.26. dialog_direction parameter usage
+...
+modparam("ims_qos", "dialog_direction", 1)
+...
+
+3.27. trust_bottom_via (int)
+
+   If set to 1 it will trust the bottom Via as the UE IP/port/transport
+   when doing client identification.
+
+   Normally, the UE identification should be done on IPsec SPIs and source
+   IP/port of the packets. In some cases the ims_* modules trust the top
+   Via on requests and the bottom Via on responses. In some (better) cases
+   this trusts the received-from IP (or the alias in the Contact header).
+
+   This parameter allows for an external-to-Kamailio IPsec functionality
+   to be used. That will be in charge of guaranteeing that the bottom Via
+   header is always correct (on requests; on responses the P-CSCF itself
+   should guarantee unmodified Via headers stack). Then the code here will
+   always use the bottom Via as the source of truth for IMS UE
+   identification.
+
+   Note: this will prefer the standard received and rport values, if
+   present, over the actual Via sent-by host and port.
+
+   Note: !! trusting the Via header has security drawbacks, as it might be
+   easily spoofed by an attacker. Hence, without extra security, the
+   P-CSCF shouldn't trust the Via header for client identification on
+   requests and the ims_registrar_pcscf module would require a fix or
+   extension for that. !!
+
+   See also the same parameter in the ims_registrar_pcscf module.
+
+   Default value is 0 (trust received-from IP and alias in Contact, and,
+   unfortunaly somewhat wrongly top/bottom Via on requests/responses).
+
+   Example 1.27. trust_bottom_via parameter usage
+...
+modparam("ims_qos", "trust_bottom_via", 1)
+...
+
 4. Functions
 
    4.1. Rx_AAR_Register(route_block, domain)
@@ -391,7 +593,7 @@ modparam("ims_qos", "include_rtcp_fd", 1)
 
 4.1. Rx_AAR_Register(route_block, domain)
 
-   Perform a AAR on Diameter RX interface to subscribe to signalling
+   Perform an AAR on Diameter RX interface to subscribe to signalling
    status. This purpose of this is tell a Diameter server (typically a
    PCRF) to inform the requesting Diameter client on changes to the status
    of signalling bearer for the same framed IP address. For more details
@@ -413,7 +615,7 @@ modparam("ims_qos", "include_rtcp_fd", 1)
    p.s. this is executed asynchronously. See example on how to retrieve
    return value
 
-   Example 1.17. Rx_AAR_Register
+   Example 1.28. Rx_AAR_Register
 ...
 if(Rx_AAR_Register("REG_AAR_REPLY","location")==0){
     exit;
@@ -436,7 +638,7 @@ route[REG_AAR_REPLY]
 
 4.2. Rx_AAR(route_block, direction, subscription_id, subscription_id_type)
 
-   Perform a AAR on Diameter RX interface to request resource
+   Perform an AAR on Diameter RX interface to request resource
    authorisation from a Diameter server (typically a PCRF). For more
    details see 3GGP TS 29.214.
 
@@ -450,12 +652,14 @@ route[REG_AAR_REPLY]
        default. This is as per RFC 4006: END_USER_E164 0, END_USER_IMSI 1,
        END_USER_SIP_URI 2, END_USER_NAI 3, END_USER_PRIVATE 4
 
-   This function can be used from REQUEST_ROUTE or ONREPLY_ROUTE.
+   This function can be used only from ONREPLY_ROUTE, only for replies to
+   INVITE, UPDATE, PRACK. The reply and request must have SDP, for this
+   function to work properly.
 
    p.s. this is executed asynchronously. See example on how to retrieve
    return value
 
-   Example 1.18. Rx_AAR
+   Example 1.29. Rx_AAR
 ...
 if(Rx_AAR("ORIG_SESSION_AAR_REPLY","orig","",-1)==0){
     exit;
@@ -479,7 +683,7 @@ route[ORIGN_SESSION_AAR_REPLY]
 
 5.1. AAR Timeouts (aar_timeouts)
 
-   The number of timeouts on sending a AAR. i.e. no response to AAR.
+   The number of timeouts on sending an AAR. i.e. no response to AAR.
 
 5.2. Average AAR Response Time (aar_avg_response_time)
 

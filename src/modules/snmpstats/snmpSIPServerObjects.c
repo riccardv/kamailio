@@ -44,7 +44,7 @@
 unsigned int global_UserLookupCounter;
 
 
-/* Initializes the kamailioSIPServerObjects module.  This involves: 
+/* Initializes the kamailioSIPServerObjects module.  This involves:
  *
  *  - Registering all OID's
  *  - Setting up handlers for all OID's
@@ -215,7 +215,7 @@ int handle_kamailioSIPProxyAuthMethod(netsnmp_mib_handler *handler,
 	}
 
 	/* We can have both tls and auth loaded simultaneously.  Therefore we
-	 * use an if instead of a else/else-if. */
+	 * use an if instead of an else/else-if. */
 	if(module_loaded("auth")) {
 		auth_bitfield |= SIP_AUTH_METHOD_DIGEST;
 		auth_bitfield &= ~SIP_AUTH_METHOD_NONE;
@@ -320,7 +320,7 @@ int handle_kamailioSIPRegUserLookupCounter(netsnmp_mib_handler *handler,
 
 	/* If we have had so many requests that we've hit our maximum index,
 	 * then we reset our counter back to 1.  For this not to cause problems,
-	 * it will be required that old rows belonging to the table 
+	 * it will be required that old rows belonging to the table
 	 * kamailioSIPRegUserLookupTable are eventually deleted. */
 	if(global_UserLookupCounter > MAX_USER_LOOKUP_COUNTER) {
 		global_UserLookupCounter = 1;

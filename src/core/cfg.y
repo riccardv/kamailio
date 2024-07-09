@@ -130,7 +130,7 @@
 
 
 extern int yylex();
-/* safer then using yytext which can be array or pointer */
+/* safer than using yytext which can be array or pointer */
 extern char* yy_number_str;
 
 static void yyerror(char* s, ...);
@@ -151,6 +151,7 @@ static struct action *mod_func_action = NULL;
 static struct lvalue* lval_tmp = NULL;
 static struct rvalue* rval_tmp = NULL;
 static struct rval_expr* rve_tmp = NULL;
+static socket_attrs_t tmp_sa;
 
 static void warn(char* s, ...);
 static void warn_at(struct cfg_pos* pos, char* s, ...);
@@ -226,6 +227,7 @@ extern char *default_routename;
 %token EXIT
 %token DROP
 %token RETURN
+%token RETURN_MODE
 %token BREAK
 %token LOG_TOK
 %token ERROR
@@ -259,6 +261,7 @@ extern char *default_routename;
 %token FORCE_TCP_ALIAS
 %token UDP_MTU
 %token UDP_MTU_TRY_PROTO
+%token UDP_RECEIVER_MODE
 %token UDP4_RAW
 %token UDP4_RAW_MTU
 %token UDP4_RAW_TTL
@@ -326,11 +329,15 @@ extern char *default_routename;
 %token LOGENGINEDATA
 %token XAVPVIAPARAMS
 %token XAVPVIAFIELDS
+%token XAVPVIAREPLYPARAMS
 %token LISTEN
 %token ADVERTISE
+%token VIRTUAL
 %token STRNAME
 %token ALIAS
 %token SR_AUTO_ALIASES
+%token DOMAIN
+%token SR_AUTO_DOMAINS
 %token DNS
 %token REV_DNS
 %token DNS_TRY_IPV6
@@ -381,6 +388,9 @@ extern char *default_routename;
 %token STAT
 %token STATS_NAMESEP
 %token CHILDREN
+%token SOCKET
+%token BIND
+%token WORKERS
 %token SOCKET_WORKERS
 %token ASYNC_WORKERS
 %token ASYNC_USLEEP
@@ -392,8 +402,10 @@ extern char *default_routename;
 %token MEMDBG
 %token MEMSUM
 %token MEMSAFETY
+%token MEMADDSIZE
 %token MEMJOIN
 %token MEMSTATUSMODE
+%token SIP_PARSER_LOG_ONELINE
 %token SIP_PARSER_LOG
 %token SIP_PARSER_MODE
 %token CORELOG
@@ -409,7 +421,13 @@ extern char *default_routename;
 %token MODPARAMX
 %token CFGENGINE
 %token MAXBUFFER
+%token MAXSNDBUFFER
 %token SQL_BUFFER_SIZE
+%token MSG_RECV_MAX_SIZE
+%token TCP_MSG_READ_TIMEOUT
+%token TCP_MSG_DATA_TIMEOUT
+%token TCP_ACCEPT_IPLIMIT
+%token TCP_CHECK_TIMER
 %token USER
 %token GROUP
 %token CHROOT
@@ -448,10 +466,14 @@ extern char *default_routename;
 %token TCP_OPT_ACCEPT_NO_CL
 %token TCP_OPT_ACCEPT_HEP3
 %token TCP_OPT_ACCEPT_HAPROXY
+%token TCP_OPT_CLOSE_RST
 %token TCP_CLONE_RCVBUF
 %token TCP_REUSE_PORT
+%token TCP_WAIT_DATA
+%token TCP_SCRIPT_MODE
 %token DISABLE_TLS
 %token ENABLE_TLS
+%token TLS_THREADS_MODE
 %token TLSLOG
 %token TLS_PORT_NO
 %token TLS_METHOD
@@ -504,6 +526,7 @@ extern char *default_routename;
 %token CFG_DESCRIPTION
 %token SERVER_ID
 %token KEMI
+%token REQUEST_ROUTE_CALLBACK
 %token ONSEND_ROUTE_CALLBACK
 %token REPLY_ROUTE_CALLBACK
 %token EVENT_ROUTE_CALLBACK
@@ -517,6 +540,7 @@ extern char *default_routename;
 %token LATENCY_LIMIT_DB
 %token LATENCY_LIMIT_ACTION
 %token LATENCY_LIMIT_CFG
+%token RPC_EXEC_DELTA_CFG
 %token MSG_TIME
 %token ONSEND_RT_REPLY
 %token URI_HOST_EXTRA_CHARS
@@ -608,7 +632,7 @@ extern char *default_routename;
 %type <sockid>  id_lst
 %type <sockid>  phostport
 %type <sockid>  listen_phostport
-%type <intval> proto eqproto port
+%type <intval> proto eqproto xproto port
 %type <intval> equalop strop cmpop rve_cmpop rve_equalop
 %type <intval> uri_type
 %type <attr> attr_id
@@ -671,11 +695,12 @@ listen_id:
 				LM_CRIT("cfg. parser: bad ip address.\n");
 				$$=0;
 			} else {
-				$$=pkg_malloc(strlen(tmp)+1);
+				i_tmp=strlen(tmp)+1;
+				$$=pkg_malloc(i_tmp);
 				if ($$==0) {
 					PKG_MEM_CRITICAL;
 				} else {
-					strncpy($$, tmp, strlen(tmp)+1);
+					strncpy($$, tmp, i_tmp);
 				}
 			}
 		}
@@ -685,7 +710,8 @@ listen_id:
 		if ($$==0) {
 				PKG_MEM_CRITICAL;
 		} else {
-				strncpy($$, $1, strlen($1)+1);
+				i_tmp=strlen($1)+1;
+				strncpy($$, $1, i_tmp);
 		}
 	}
 	| host_or_if {
@@ -694,7 +720,8 @@ listen_id:
 			if ($$==0) {
 					PKG_MEM_CRITICAL;
 			} else {
-					strncpy($$, $1, strlen($1)+1);
+					i_tmp=strlen($1)+1;
+					strncpy($$, $1, i_tmp);
 			}
 		}
 	}
@@ -729,6 +756,15 @@ eqproto:
 	| WSS	{ $$=PROTO_WSS; }
 	| STAR	{ $$=0; }
 	;
+xproto:
+	UDP	{ $$=PROTO_UDP; }
+	| TCP	{ $$=PROTO_TCP; }
+	| TLS	{ $$=PROTO_TLS; }
+	| SCTP	{ $$=PROTO_SCTP; }
+	| WS	{ $$=PROTO_WS; }
+	| WSS	{ $$=PROTO_WSS; }
+	;
+
 port:
 	NUMBER	{ $$=$1; }
 	| STAR	{ $$=0; }
@@ -792,6 +828,67 @@ avpflag_spec:
 			yyerror("cannot declare avpflag");
 	}
 	;
+socket_lattr:
+	BIND EQUAL proto COLON listen_id COLON port	{
+			tmp_sa.bindproto = $3;
+			tmp_sa.bindaddr.s = $5;
+			tmp_sa.bindaddr.len = strlen(tmp_sa.bindaddr.s);
+			tmp_sa.bindport = $7;
+		}
+	| BIND EQUAL listen_id COLON port	{
+			tmp_sa.bindaddr.s = $3;
+			tmp_sa.bindaddr.len = strlen(tmp_sa.bindaddr.s);
+			tmp_sa.bindport = $5;
+		}
+	| BIND EQUAL proto COLON listen_id COLON port MINUS port	{
+			tmp_sa.bindproto = $3;
+			tmp_sa.bindaddr.s = $5;
+			tmp_sa.bindaddr.len = strlen(tmp_sa.bindaddr.s);
+			tmp_sa.bindport = $7;
+			tmp_sa.bindportend = $9;
+		}
+	| BIND EQUAL listen_id COLON port MINUS port	{
+			tmp_sa.bindaddr.s = $3;
+			tmp_sa.bindaddr.len = strlen(tmp_sa.bindaddr.s);
+			tmp_sa.bindport = $5;
+			tmp_sa.bindportend = $7;
+		}
+	| BIND EQUAL proto COLON listen_id	{
+			tmp_sa.bindproto = $3;
+			tmp_sa.bindaddr.s = $5;
+			tmp_sa.bindaddr.len = strlen(tmp_sa.bindaddr.s);
+		}
+	| BIND EQUAL listen_id	{
+			tmp_sa.bindaddr.s = $3;
+			tmp_sa.bindaddr.len = strlen(tmp_sa.bindaddr.s);
+		}
+	| BIND EQUAL error { yyerror("string value expected"); }
+	| STRNAME EQUAL STRING {
+			tmp_sa.sockname.s = $3;
+			tmp_sa.sockname.len = strlen(tmp_sa.sockname.s);
+		}
+	| STRNAME EQUAL error { yyerror("string value expected"); }
+	| ADVERTISE EQUAL listen_id COLON NUMBER {
+			tmp_sa.useaddr.s = $3;
+			tmp_sa.useaddr.len = strlen(tmp_sa.useaddr.s);
+			tmp_sa.useport = $5;
+		}
+	| ADVERTISE EQUAL proto COLON listen_id COLON NUMBER {
+			tmp_sa.useproto = $3;
+			tmp_sa.useaddr.s = $5;
+			tmp_sa.useaddr.len = strlen(tmp_sa.useaddr.s);
+			tmp_sa.useport = $7;
+		}
+	| WORKERS EQUAL NUMBER { tmp_sa.workers=$3; }
+	| WORKERS EQUAL error { yyerror("number expected"); }
+	| VIRTUAL EQUAL NUMBER { if($3!=0) { tmp_sa.sflags |= SI_IS_VIRTUAL; } }
+	| VIRTUAL EQUAL error { yyerror("number expected"); }
+	| SEMICOLON {}
+	;
+socket_lattrs:
+	socket_lattrs socket_lattr {}
+	| socket_lattr {}
+	;
 assign_stm:
 	DEBUG_V EQUAL intno { default_core_cfg.debug=$3; }
 	| DEBUG_V EQUAL error  { yyerror("number  expected"); }
@@ -828,10 +925,14 @@ assign_stm:
 			_ksr_xavp_via_params.len=strlen($3);
 		}
 	| XAVPVIAPARAMS EQUAL error { yyerror("string value expected"); }
-	| XAVPVIAFIELDS EQUAL STRING { _ksr_xavp_via_params.s=$3;
+	| XAVPVIAFIELDS EQUAL STRING { _ksr_xavp_via_fields.s=$3;
 			_ksr_xavp_via_fields.len=strlen($3);
 		}
 	| XAVPVIAFIELDS EQUAL error { yyerror("string value expected"); }
+	| XAVPVIAREPLYPARAMS EQUAL STRING { _ksr_xavp_via_reply_params.s=$3;
+			_ksr_xavp_via_reply_params.len=strlen($3);
+		}
+	| XAVPVIAREPLYPARAMS EQUAL error { yyerror("string value expected"); }
 	| DNS EQUAL NUMBER   { received_dns|= ($3)?DO_DNS:0; }
 	| DNS EQUAL error { yyerror("boolean value expected"); }
 	| REV_DNS EQUAL NUMBER { received_dns|= ($3)?DO_REV_DNS:0; }
@@ -935,15 +1036,36 @@ assign_stm:
 	| IP_FREE_BIND EQUAL intno { _sr_ip_free_bind=$3; }
 	| IP_FREE_BIND EQUAL error { yyerror("int value expected"); }
 	| PORT EQUAL NUMBER   { port_no=$3; }
+	| PORT EQUAL error    { yyerror("number expected"); }
 	| MAXBUFFER EQUAL NUMBER { maxbuffer=$3; }
 	| MAXBUFFER EQUAL error { yyerror("number expected"); }
-    | SQL_BUFFER_SIZE EQUAL NUMBER { sql_buffer_size=$3; }
+	| MAXSNDBUFFER EQUAL NUMBER { maxsndbuffer=$3; }
+	| MAXSNDBUFFER EQUAL error { yyerror("number expected"); }
+	| SQL_BUFFER_SIZE EQUAL NUMBER { sql_buffer_size=$3; }
 	| SQL_BUFFER_SIZE EQUAL error { yyerror("number expected"); }
-	| PORT EQUAL error    { yyerror("number expected"); }
+	| MSG_RECV_MAX_SIZE EQUAL NUMBER { ksr_msg_recv_max_size=$3; }
+	| MSG_RECV_MAX_SIZE EQUAL error { yyerror("number expected"); }
+	| TCP_MSG_READ_TIMEOUT EQUAL NUMBER { ksr_tcp_msg_read_timeout=$3; }
+	| TCP_MSG_READ_TIMEOUT EQUAL error { yyerror("number expected"); }
+	| TCP_MSG_DATA_TIMEOUT EQUAL NUMBER { ksr_tcp_msg_data_timeout=$3; }
+	| TCP_MSG_DATA_TIMEOUT EQUAL error { yyerror("number expected"); }
+	| TCP_ACCEPT_IPLIMIT EQUAL NUMBER { ksr_tcp_accept_iplimit=$3; }
+	| TCP_ACCEPT_IPLIMIT EQUAL error { yyerror("number expected"); }
+	| TCP_CHECK_TIMER EQUAL NUMBER { ksr_tcp_check_timer=$3; }
+	| TCP_CHECK_TIMER EQUAL error { yyerror("number expected"); }
 	| CHILDREN EQUAL NUMBER { children_no=$3; }
 	| CHILDREN EQUAL error { yyerror("number expected"); }
 	| STATS_NAMESEP EQUAL STRING { ksr_stats_namesep=$3; }
 	| STATS_NAMESEP EQUAL error { yyerror("string value expected"); }
+	| SOCKET {
+				memset(&tmp_sa, 0, sizeof(socket_attrs_t));
+			} EQUAL LBRACE socket_lattrs RBRACE {
+				if(add_listen_socket(&tmp_sa)<0) {
+					LM_ERR("failed to add listen socket\n");
+					yyerror("failed to add listen socket");
+					ksr_exit(-1);
+				}
+	}
 	| SOCKET_WORKERS EQUAL NUMBER { socket_workers=$3; }
 	| SOCKET_WORKERS EQUAL error { yyerror("number expected"); }
 	| ASYNC_WORKERS EQUAL NUMBER { async_task_set_workers($3); }
@@ -966,10 +1088,14 @@ assign_stm:
 	| MEMSUM EQUAL error { yyerror("int value expected"); }
 	| MEMSAFETY EQUAL intno { default_core_cfg.mem_safety=$3; }
 	| MEMSAFETY EQUAL error { yyerror("int value expected"); }
+	| MEMADDSIZE EQUAL intno { ksr_mem_add_size=$3; }
+	| MEMADDSIZE EQUAL error { yyerror("int value expected"); }
 	| MEMJOIN EQUAL intno { default_core_cfg.mem_join=$3; }
 	| MEMJOIN EQUAL error { yyerror("int value expected"); }
 	| MEMSTATUSMODE EQUAL intno { default_core_cfg.mem_status_mode=$3; }
 	| MEMSTATUSMODE EQUAL error { yyerror("int value expected"); }
+	| SIP_PARSER_LOG_ONELINE EQUAL intno { default_core_cfg.sip_parser_log_oneline=$3; }
+	| SIP_PARSER_LOG_ONELINE EQUAL error { yyerror("int value expected"); }
 	| SIP_PARSER_LOG EQUAL intno { default_core_cfg.sip_parser_log=$3; }
 	| SIP_PARSER_LOG EQUAL error { yyerror("int value expected"); }
 	| SIP_PARSER_MODE EQUAL intno { ksr_sip_parser_mode=$3; }
@@ -1295,6 +1421,14 @@ assign_stm:
 		#endif
 	}
 	| TCP_OPT_ACCEPT_HAPROXY EQUAL error { yyerror("boolean value expected"); }
+	| TCP_OPT_CLOSE_RST EQUAL NUMBER {
+         #ifdef USE_TCP
+             tcp_default_cfg.close_rst=$3;
+         #else
+             warn("tcp support not compiled in");
+         #endif
+     }
+     | TCP_OPT_CLOSE_RST EQUAL error { yyerror("boolean value expected"); }
 
 	| TCP_CLONE_RCVBUF EQUAL NUMBER {
 		#ifdef USE_TCP
@@ -1316,6 +1450,22 @@ assign_stm:
 		#endif
 	}
 	| TCP_REUSE_PORT EQUAL error { yyerror("boolean value expected"); }
+	| TCP_WAIT_DATA EQUAL intno {
+		#ifdef USE_TCP
+			tcp_default_cfg.wait_data_ms=$3;
+		#else
+			warn("tcp support not compiled in");
+		#endif
+	}
+	| TCP_WAIT_DATA EQUAL error { yyerror("number expected"); }
+	| TCP_SCRIPT_MODE EQUAL intno {
+		#ifdef USE_TCP
+			ksr_tcp_script_mode=$3;
+		#else
+			warn("tcp support not compiled in");
+		#endif
+	}
+	| TCP_SCRIPT_MODE EQUAL error { yyerror("number expected"); }
 	| DISABLE_TLS EQUAL NUMBER {
 		#ifdef USE_TLS
 			tls_disable=$3;
@@ -1332,6 +1482,14 @@ assign_stm:
 		#endif
 	}
 	| ENABLE_TLS EQUAL error { yyerror("boolean value expected"); }
+	| TLS_THREADS_MODE EQUAL NUMBER {
+		#ifdef USE_TLS
+			ksr_tls_threads_mode = $3;
+		#else
+			warn("tls support not compiled in");
+		#endif
+	}
+	| TLS_THREADS_MODE EQUAL error { yyerror("int value expected"); }
 	| TLSLOG EQUAL NUMBER {
 		#ifdef CORE_TLS
 			tls_log=$3;
@@ -1491,6 +1649,19 @@ assign_stm:
 		}
 		free_socket_id_lst($3);
 	}
+        | LISTEN EQUAL id_lst VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_iface(   lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
 	| LISTEN EQUAL id_lst STRNAME STRING {
 		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
 			if (add_listen_iface_name(lst_tmp->addr_lst->name,
@@ -1503,12 +1674,25 @@ assign_stm:
 		}
 		free_socket_id_lst($3);
 	}
+        | LISTEN EQUAL id_lst STRNAME STRING VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+                        lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_iface_name(lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto, $5,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
 	| LISTEN EQUAL id_lst ADVERTISE listen_id COLON NUMBER {
 		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
 			if (add_listen_advertise_iface(	lst_tmp->addr_lst->name,
 									lst_tmp->addr_lst->next,
 									lst_tmp->port, lst_tmp->proto,
-									$5, $7,
+									PROTO_NONE, $5, $7,
 									lst_tmp->flags)!=0) {
 				LM_CRIT("cfg. parser: failed to add listen address\n");
 				break;
@@ -1516,9 +1700,9 @@ assign_stm:
 		}
 		free_socket_id_lst($3);
 	}
-	| LISTEN EQUAL id_lst ADVERTISE listen_id COLON NUMBER STRNAME STRING {
+	| LISTEN EQUAL id_lst ADVERTISE xproto COLON listen_id COLON NUMBER {
 		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
-			if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
+			if (add_listen_advertise_iface(	lst_tmp->addr_lst->name,
 									lst_tmp->addr_lst->next,
 									lst_tmp->port, lst_tmp->proto,
 									$5, $7, $9,
@@ -1529,12 +1713,80 @@ assign_stm:
 		}
 		free_socket_id_lst($3);
 	}
+        | LISTEN EQUAL id_lst ADVERTISE listen_id COLON NUMBER VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_advertise_iface( lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto,
+                                                                        PROTO_NONE, $5, $7,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
+	| LISTEN EQUAL id_lst ADVERTISE listen_id COLON NUMBER STRNAME STRING {
+		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
+									lst_tmp->addr_lst->next,
+									lst_tmp->port, lst_tmp->proto,
+									PROTO_NONE, $5, $7, $9,
+									lst_tmp->flags)!=0) {
+				LM_CRIT("cfg. parser: failed to add listen address\n");
+				break;
+			}
+		}
+		free_socket_id_lst($3);
+	}
+	| LISTEN EQUAL id_lst ADVERTISE xproto COLON listen_id COLON NUMBER STRNAME STRING {
+		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
+									lst_tmp->addr_lst->next,
+									lst_tmp->port, lst_tmp->proto,
+									$5, $7, $9, $11,
+									lst_tmp->flags)!=0) {
+				LM_CRIT("cfg. parser: failed to add listen address\n");
+				break;
+			}
+		}
+		free_socket_id_lst($3);
+	}
+        | LISTEN EQUAL id_lst ADVERTISE listen_id COLON NUMBER STRNAME STRING VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto,
+                                                                        PROTO_NONE, $5, $7, $9,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
+        | LISTEN EQUAL id_lst ADVERTISE xproto COLON listen_id COLON NUMBER STRNAME STRING VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto,
+                                                                        $5, $7, $9, $11,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
 	| LISTEN EQUAL id_lst ADVERTISE listen_id {
 		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
 			if (add_listen_advertise_iface(	lst_tmp->addr_lst->name,
 									lst_tmp->addr_lst->next,
 									lst_tmp->port, lst_tmp->proto,
-									$5, 0,
+									PROTO_NONE, $5, 0,
 									lst_tmp->flags)!=0) {
 				LM_CRIT("cfg. parser: failed to add listen address\n");
 				break;
@@ -1542,12 +1794,26 @@ assign_stm:
 		}
 		free_socket_id_lst($3);
 	}
+        | LISTEN EQUAL id_lst ADVERTISE listen_id VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_advertise_iface( lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto,
+                                                                        PROTO_NONE, $5, 0,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
 	| LISTEN EQUAL id_lst ADVERTISE listen_id STRNAME STRING {
 		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
 			if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
 									lst_tmp->addr_lst->next,
 									lst_tmp->port, lst_tmp->proto,
-									$5, 0, $7,
+									PROTO_NONE, $5, 0, $7,
 									lst_tmp->flags)!=0) {
 				LM_CRIT("cfg. parser: failed to add listen address\n");
 				break;
@@ -1555,6 +1821,20 @@ assign_stm:
 		}
 		free_socket_id_lst($3);
 	}
+        | LISTEN EQUAL id_lst ADVERTISE listen_id STRNAME STRING VIRTUAL {
+                for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next) {
+			lst_tmp->flags |= SI_IS_VIRTUAL;
+                        if (add_listen_advertise_iface_name(lst_tmp->addr_lst->name,
+                                                                        lst_tmp->addr_lst->next,
+                                                                        lst_tmp->port, lst_tmp->proto,
+                                                                        PROTO_NONE, $5, 0, $7,
+                                                                        lst_tmp->flags)!=0) {
+                                LM_CRIT("cfg. parser: failed to add listen address\n");
+                                break;
+                        }
+                }
+                free_socket_id_lst($3);
+        }
 	| LISTEN EQUAL  error { yyerror("ip address, interface name or"
 									" hostname expected"); }
 	| ALIAS EQUAL  id_lst {
@@ -1569,8 +1849,22 @@ assign_stm:
 		free_socket_id_lst($3);
 	}
 	| ALIAS  EQUAL error  { yyerror("hostname expected"); }
+	| DOMAIN EQUAL  id_lst {
+		for(lst_tmp=$3; lst_tmp; lst_tmp=lst_tmp->next){
+			add_alias(	lst_tmp->addr_lst->name,
+						strlen(lst_tmp->addr_lst->name),
+						lst_tmp->port, lst_tmp->proto);
+			for (nl_tmp=lst_tmp->addr_lst->next; nl_tmp; nl_tmp=nl_tmp->next)
+				add_alias(nl_tmp->name, strlen(nl_tmp->name),
+							lst_tmp->port, lst_tmp->proto);
+		}
+		free_socket_id_lst($3);
+	}
+	| DOMAIN  EQUAL error  { yyerror("hostname expected"); }
 	| SR_AUTO_ALIASES EQUAL NUMBER { sr_auto_aliases=$3; }
 	| SR_AUTO_ALIASES EQUAL error  { yyerror("boolean value expected"); }
+	| SR_AUTO_DOMAINS EQUAL NUMBER { sr_auto_aliases=$3; }
+	| SR_AUTO_DOMAINS EQUAL error  { yyerror("boolean value expected"); }
 	| ADVERTISED_ADDRESS EQUAL listen_id {
 		if ($3){
 			default_global_address.s=$3;
@@ -1594,11 +1888,18 @@ assign_stm:
 	| OPEN_FD_LIMIT EQUAL NUMBER { open_files_limit=$3; }
 	| OPEN_FD_LIMIT EQUAL error { yyerror("number expected"); }
 	| SHM_MEM_SZ EQUAL NUMBER {
-		if (shm_initialized())
+		if (shm_initialized()) {
 			yyerror("shm/shm_mem_size must be before any modparam or the"
 					" route blocks");
-		else if (shm_mem_size == 0 || shm_mem_size == SHM_MEM_POOL_SIZE)
+		} else if (shm_mem_size == 0 || shm_mem_size == SHM_MEM_POOL_SIZE) {
+			/* safety check for upper limit of 16TB */
+			if($3 <= 0 || $3 > 16L * 1024 * 1024) {
+				LM_ERR("out of limits shmem size number: %ld\n", (long int)$3);
+				yyerror("invalid config option");
+				YYABORT;
+			}
 			shm_mem_size=$3 * 1024 * 1024;
+		}
 	}
 	| SHM_MEM_SZ EQUAL error { yyerror("number expected"); }
 	| SHM_FORCE_ALLOC EQUAL NUMBER {
@@ -1713,6 +2014,16 @@ assign_stm:
 	| WAIT_WORKER1_USLEEP EQUAL error { yyerror("number expected"); }
     | SERVER_ID EQUAL NUMBER { server_id=$3; }
 	| SERVER_ID EQUAL error  { yyerror("number expected"); }
+    | RETURN_MODE EQUAL NUMBER { ksr_return_mode=$3; }
+	| RETURN_MODE EQUAL error  { yyerror("number expected"); }
+	| KEMI DOT REQUEST_ROUTE_CALLBACK EQUAL STRING {
+			kemi_request_route_callback.s = $5;
+			kemi_request_route_callback.len = strlen($5);
+			if(kemi_request_route_callback.len==0) {
+				yyerror("empty name for request route callback function");
+			}
+		}
+	| KEMI DOT REQUEST_ROUTE_CALLBACK EQUAL error { yyerror("string expected"); }
 	| KEMI DOT ONSEND_ROUTE_CALLBACK EQUAL STRING {
 			kemi_onsend_route_callback.s = $5;
 			kemi_onsend_route_callback.len = strlen($5);
@@ -1777,12 +2088,16 @@ assign_stm:
 	| LATENCY_LIMIT_ACTION EQUAL error  { yyerror("number  expected"); }
     | LATENCY_LIMIT_CFG EQUAL NUMBER { default_core_cfg.latency_limit_cfg=$3; }
 	| LATENCY_LIMIT_CFG EQUAL error  { yyerror("number  expected"); }
+    | RPC_EXEC_DELTA_CFG EQUAL NUMBER { ksr_rpc_exec_delta=$3; }
+	| RPC_EXEC_DELTA_CFG EQUAL error  { yyerror("number  expected"); }
     | MSG_TIME EQUAL NUMBER { sr_msg_time=$3; }
 	| MSG_TIME EQUAL error  { yyerror("number  expected"); }
 	| ONSEND_RT_REPLY EQUAL NUMBER { onsend_route_reply=$3; }
 	| ONSEND_RT_REPLY EQUAL error { yyerror("int value expected"); }
 	| UDP_MTU EQUAL NUMBER { default_core_cfg.udp_mtu=$3; }
 	| UDP_MTU EQUAL error { yyerror("number expected"); }
+	| UDP_RECEIVER_MODE EQUAL NUMBER { ksr_udp_receiver_mode=$3; }
+	| UDP_RECEIVER_MODE EQUAL error { yyerror("number expected"); }
 	| FORCE_RPORT EQUAL NUMBER
 		{ default_core_cfg.force_rport=$3; fix_global_req_flags(0, 0); }
 	| FORCE_RPORT EQUAL error { yyerror("boolean value expected"); }
@@ -1858,14 +2173,38 @@ cfg_var:
 module_stm:
 	LOADMODULE STRING {
 		LM_DBG("loading module %s\n", $2);
-			if (load_module($2)!=0) {
+			if (ksr_load_module($2, NULL)!=0) {
+				yyerror("failed to load module");
+			}
+	}
+	| LOADMODULE LPAREN STRING RPAREN {
+		LM_DBG("loading module %s\n", $3);
+			if (ksr_load_module($3, NULL)!=0) {
+				yyerror("failed to load module");
+			}
+	}
+	| LOADMODULE LPAREN STRING COMMA STRING RPAREN {
+		LM_DBG("loading module %s opts %s\n", $3, $5);
+			if (ksr_load_module($3, $5)!=0) {
 				yyerror("failed to load module");
 			}
 	}
 	| LOADMODULE error	{ yyerror("string expected"); }
 	| LOADMODULEX STRING {
 		LM_DBG("loading module %s\n", $2);
-			if (load_modulex($2)!=0) {
+			if (ksr_load_modulex($2, NULL)!=0) {
+				yyerror("failed to load module");
+			}
+	}
+	| LOADMODULEX LPAREN STRING RPAREN {
+		LM_DBG("loading module %s\n", $3);
+			if (ksr_load_modulex($3, NULL)!=0) {
+				yyerror("failed to load module");
+			}
+	}
+	| LOADMODULEX LPAREN STRING COMMA STRING RPAREN {
+		LM_DBG("loading module %s opts %s\n", $3, $5);
+			if (ksr_load_modulex($3, $5)!=0) {
 				yyerror("failed to load module");
 			}
 	}
@@ -2213,9 +2552,9 @@ event_route_stm:
 preprocess_stm:
 	SUBST STRING { if(pp_subst_add($2)<0) YYERROR; }
 	| SUBST error { yyerror("invalid subst preprocess statement"); }
-	| SUBSTDEF STRING { if(pp_substdef_add($2, 0)<0) YYERROR; }
+	| SUBSTDEF STRING { if(pp_substdef_add($2, KSR_PPDEF_NORMAL)<0) YYERROR; }
 	| SUBSTDEF error { yyerror("invalid substdef preprocess statement"); }
-	| SUBSTDEFS STRING { if(pp_substdef_add($2, 1)<0) YYERROR; }
+	| SUBSTDEFS STRING { if(pp_substdef_add($2, KSR_PPDEF_QUOTED)<0) YYERROR; }
 	| SUBSTDEFS error { yyerror("invalid substdefs preprocess statement"); }
 	;
 
@@ -2227,7 +2566,7 @@ preprocess_stm:
 			}else if (!rve_check_type((enum rval_type*)&i_tmp, $1, 0, 0 ,0)){
 				yyerror("invalid expression");
 				$$=0;
-			}else if (i_tmp!=RV_INT && i_tmp!=RV_NONE){
+			}else if (i_tmp!=RV_LONG && i_tmp!=RV_NONE){
 				yyerror("invalid expression type, int expected\n");
 				$$=0;
 			}else
@@ -2351,7 +2690,7 @@ exp_elem:
 			$$=0;
 			if (rve_is_constant($3)){
 				i_tmp=rve_guess_type($3);
-				if (i_tmp==RV_INT)
+				if (i_tmp==RV_LONG)
 					yyerror("string expected");
 				else if (i_tmp==RV_STR){
 					if (((rval_tmp=rval_expr_eval(0, 0, $3))==0) ||
@@ -2457,11 +2796,13 @@ host_if_id: ID
 		| NUM_ID
 		| NUMBER {
 			/* get string version */
-			$$=pkg_malloc(strlen(yy_number_str)+1);
+			i_tmp = strlen(yy_number_str);
+			$$=pkg_malloc(i_tmp + 1);
 			if ($$==0) {
 				PKG_MEM_ERROR;
 			} else {
-				strcpy($$, yy_number_str);
+				memcpy($$, yy_number_str, i_tmp);
+				$$[i_tmp] = '\0';
 			}
 		}
 		;
@@ -2595,7 +2936,7 @@ ct_rval: rval_expr {
 			} else if ($1 &&
 						!rve_check_type((enum rval_type*)&i_tmp, $1, 0, 0 ,0)){
 				yyerror("invalid expression (bad type)");
-			}else if ($1 && i_tmp!=RV_INT){
+			}else if ($1 && i_tmp!=RV_LONG){
 				yyerror("invalid expression type, int expected\n");
 			*/
 			}else
@@ -2955,7 +3296,7 @@ lval: attr_id_ass {
 				}
 	;
 
-rval: intno			{$$=mk_rve_rval(RV_INT, (void*)$1); }
+rval: intno			{$$=mk_rve_rval(RV_LONG, (void*)$1); }
 	| STRING			{	s_tmp.s=$1; s_tmp.len=strlen($1);
 							$$=mk_rve_rval(RV_STR, &s_tmp); }
 	| attr_id_any		{$$=mk_rve_rval(RV_AVP, $1); pkg_free($1); }
@@ -3006,7 +3347,7 @@ rval_expr: rval						{ $$=$1;
 										}
 									}
 		| rve_un_op rval_expr %prec UNARY	{$$=mk_rve1($1, $2); }
-		| INTCAST rval_expr				{$$=mk_rve1(RVE_INT_OP, $2); }
+		| INTCAST rval_expr				{$$=mk_rve1(RVE_LONG_OP, $2); }
 		| STRCAST rval_expr				{$$=mk_rve1(RVE_STR_OP, $2); }
 		| rval_expr PLUS rval_expr		{$$=mk_rve2(RVE_PLUS_OP, $1, $3); }
 		| rval_expr MINUS rval_expr		{$$=mk_rve2(RVE_MINUS_OP, $1, $3); }
@@ -3047,7 +3388,7 @@ rval_expr: rval						{ $$=$1;
 				rve_tmp=mk_rve2(RVE_SELVALOPT_OP, $5, $7);
 				if(rve_tmp == NULL) {
 					$$=0;
-					yyerror("faild to create tenary target expression");
+					yyerror("failed to create tenary target expression");
 				}
 				$$=mk_rve2(RVE_SELVALEXP_OP, $3, rve_tmp);
 		}
@@ -3686,6 +4027,9 @@ static void yyerror_at(struct cfg_pos* p, char* format, ...)
 		LM_CRIT("parse error in config file %s, line %d, column %d: %s\n",
 					p->fname, p->s_line, p->s_col, s);
 	cfg_errors++;
+	if(ksr_all_errors==0) {
+		ksr_exit(-1);
+	}
 }
 
 
@@ -3819,7 +4163,7 @@ static int rval_expr_int_check(struct rval_expr *rve)
 		else
 			yyerror("BUG: unexpected null \"bad\" expression\n");
 		return -1;
-	}else if (type!=RV_INT && type!=RV_NONE){
+	}else if (type!=RV_LONG && type!=RV_NONE){
 		warn_at(&rve->fpos, "non-int expression (you might want to use"
 				" casts)\n");
 		return 1;
@@ -4088,7 +4432,7 @@ static int mod_f_params_pre_fixup(struct action* a)
 			cmd_exp->fixup_flags  |= FIXUP_F_FPARAM_RVE;
 		else if (!(cmd_exp->fixup_flags & FIXUP_F_FPARAM_RVE) &&
 				 cmd_exp->free_fixup == 0) {
-			/* v0 or v1 functions that have fixups and no coresp. fixup_free
+			/* v0 or v1 functions that have fixups and no corresp. fixup_free
 			   functions, need constant, string params.*/
 			for (r=0; r < param_no; r++) {
 				rve=params[r].u.data;

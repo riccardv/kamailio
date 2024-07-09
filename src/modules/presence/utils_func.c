@@ -23,7 +23,7 @@
 
 /*! \file
  * \brief Kamailio presence module :: Utilities
- * \ingroup presence 
+ * \ingroup presence
  */
 
 
@@ -116,7 +116,8 @@ int send_error_reply(struct sip_msg *msg, int reply_code, str reply_str)
 
 		hdr_append.s = buffer;
 		hdr_append.s[0] = '\0';
-		hdr_append.len = sprintf(hdr_append.s, "Min-Expires: %d", pres_min_expires);
+		hdr_append.len =
+				sprintf(hdr_append.s, "Min-Expires: %d", pres_min_expires);
 		if(hdr_append.len < 0) {
 			LM_ERR("unsuccessful sprintf\n");
 			return -1;
@@ -131,7 +132,7 @@ int send_error_reply(struct sip_msg *msg, int reply_code, str reply_str)
 		}
 	}
 
-	if(slb.freply(msg, reply_code, &reply_str) < 0) {
+	if(_pres_slb.freply(msg, reply_code, &reply_str) < 0) {
 		LM_ERR("sending %d %.*s reply\n", reply_code, reply_str.len,
 				reply_str.s);
 		return -1;

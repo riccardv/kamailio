@@ -124,7 +124,7 @@ modparam("ndb_cassandra", "port", 9160)
    keyspace. There must be an existing keyspace called 'keyspace' with a
    column_family called 'column_family' in the targeted Cassandra node.
 
-   value will be returned as well as a integer return code.
+   value will be returned as well as an integer return code.
 
    Return integer needs to be checked:
      * ret < 0, error
@@ -145,8 +145,8 @@ modparam("ndb_cassandra", "port", 9160)
     $var(val_write) = "TestMyName"; # To be written
     if (cass_insert("$var(keyspace)", "$var(column_family)", "$ru", "$var(column
 )", "$var(val_write)") > 0) {
-       xlog("L_DBG", "ndb_cassandra. Sucess while inserting to Cassandra. val_wr
-ite: \"$var(val_write)\"");
+       xlog("L_DBG", "ndb_cassandra. Success while inserting to Cassandra. val_w
+rite: \"$var(val_write)\"");
     } else {
        xlog("L_DBG", "ndb_cassandra. Error while inserting to Cassandra");
     }
@@ -160,8 +160,8 @@ ite: \"$var(val_write)\"");
     $var(val_read) = ""; # To be read
     if (cass_retrieve("$var(keyspace)", "$var(column_family)", "$var(key)", "$va
 r(column)", "$var(val_read)") > 0) {
-       xlog("L_DBG", "ndb_cassandra. Sucess while reading from Cassandra. val_re
-ad: \"$var(val_read)\"");
+       xlog("L_DBG", "ndb_cassandra. Success while reading from Cassandra. val_r
+ead: \"$var(val_read)\"");
     } else {
        xlog("L_DBG", "ndb_cassandra. Error while reading from Cassandra");
     }

@@ -135,7 +135,7 @@ Chapter 1. Admin Guide
 
    Limiting the rate messages are processed on a system directly
    influences the load. The ratelimit module can be used to protect a
-   single host or to protect an Kamailio cluster when run on the
+   single host or to protect a Kamailio cluster when run on the
    dispatching box in front.
 
    A sample configuration snippet might look like this:
@@ -490,8 +490,8 @@ modparam("ratelimit", "pipe", "4:NETWORK:10000")
    Name: rl.push_load
 
    Parameters:
-     * load - the forced value of load (it must be greater then 0.0 and
-       smaller then 1.0).
+     * load - the forced value of load (it must be greater than 0.0 and
+       less than 1.0).
 
    RPC Command Format:
                 kamcmd rl.push_load 0.85
@@ -514,5 +514,5 @@ modparam("ratelimit", "pipe", "4:NETWORK:10000")
 
    The pipes and queues are stored as static vectors, so no more than
    MAX_PIPES/MAX_QUEUES can be added without recompilation.
-     * MAX_PIPES - 16
-     * MAX_QUEUES - 10
+     * MAX_PIPES - 32
+     * MAX_QUEUES - 32

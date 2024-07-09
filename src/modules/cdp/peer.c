@@ -4,7 +4,7 @@
  *
  * The initial version of this code was written by Dragos Vingarzan
  * (dragos(dot)vingarzan(at)fokus(dot)fraunhofer(dot)de and the
- * Fruanhofer Institute. It was and still is maintained in a separate
+ * Fraunhofer FOKUS Institute. It was and still is maintained in a separate
  * branch of the original SER. We are therefore migrating it to
  * Kamailio/SR and look forward to maintaining it from here on out.
  * 2011/2012 Smile Communications, Pty. Ltd.
@@ -14,7 +14,7 @@
  * effort to add full IMS support to Kamailio/SR using a new and
  * improved architecture
  *
- * NB: Alot of this code was originally part of OpenIMSCore,
+ * NB: A lot of this code was originally part of OpenIMSCore,
  * FhG Fokus.
  * Copyright (C) 2004-2006 FhG Fokus
  * Thanks for great work! This is an effort to
@@ -54,21 +54,25 @@
  * @param port - port of the peer to connect to
  * @returns the new peer* if ok, NULL on error
  */
-peer* new_peer(str fqdn,str realm,int port,str src_addr)
+peer *new_peer(str fqdn, str realm, int port, str src_addr, str proto)
 {
 	peer *x;
 	x = shm_malloc(sizeof(peer));
-	if (!x){
-		LOG_NO_MEM("shm",sizeof(peer));
+	if(!x) {
+		LOG_NO_MEM("shm", sizeof(peer));
 		goto error;
 	}
-	memset(x,0,sizeof(peer));
-	shm_str_dup_macro(x->fqdn,fqdn);
-	if (!x->fqdn.s) goto error;
-	shm_str_dup_macro(x->realm,realm);
-	if (!x->realm.s) goto error;
-	shm_str_dup_macro(x->src_addr,src_addr);
-	if (!x->src_addr.s) goto error;
+	memset(x, 0, sizeof(peer));
+	shm_str_dup_macro(x->fqdn, fqdn);
+	if(!x->fqdn.s)
+		goto error;
+	shm_str_dup_macro(x->realm, realm);
+	if(!x->realm.s)
+		goto error;
+	shm_str_dup_macro(x->src_addr, src_addr);
+	if(!x->src_addr.s)
+		goto error;
+	shm_str_dup_macro(x->proto, proto);
 	x->port = port;
 	x->lock = lock_alloc();
 	x->lock = lock_init(x->lock);
@@ -78,7 +82,7 @@ peer* new_peer(str fqdn,str realm,int port,str src_addr)
 	x->I_sock = -1;
 	x->R_sock = -1;
 
-	x->activity = time(0)-500;
+	x->activity = time(0) - 500;
 
 	x->next = 0;
 	x->prev = 0;
@@ -93,15 +97,20 @@ error:
  * @param x - the peer to free
  * @param locked - if the caller of this function already acquired the lock on this peer
  */
-void free_peer(peer *x,int locked)
+void free_peer(peer *x, int locked)
 {
-	if (!x) return;
-	if (!locked) lock_get(x->lock);
-	if (x->fqdn.s) shm_free(x->fqdn.s);
-	if (x->realm.s) shm_free(x->realm.s);
-	if (x->src_addr.s) shm_free(x->src_addr.s);
+	if(!x)
+		return;
+	if(!locked)
+		lock_get(x->lock);
+	if(x->fqdn.s)
+		shm_free(x->fqdn.s);
+	if(x->realm.s)
+		shm_free(x->realm.s);
+	if(x->src_addr.s)
+		shm_free(x->src_addr.s);
 	lock_destroy(x->lock);
-	lock_dealloc((void*)x->lock);
+	lock_dealloc((void *)x->lock);
 	shm_free(x);
 }
 

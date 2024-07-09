@@ -43,25 +43,25 @@
 /*
  * Matching algorithms
  */
-#define CONTACT_ONLY            (0)
-#define CONTACT_CALLID          (1)
-#define CONTACT_PATH		(2)
+#define CONTACT_ONLY (0)
+#define CONTACT_CALLID (1)
+#define CONTACT_PATH (2)
 
-#define REG_TABLE   "locdb"
-#define URL_COL        "url"
-#define ID_COL         "id"
-#define NUM_COL        "no"
-#define STATUS_COL      "status"
+#define REG_TABLE "locdb"
+#define URL_COL "url"
+#define ID_COL "id"
+#define NUM_COL "no"
+#define STATUS_COL "status"
 #define FAILOVER_T_COL "failover"
-#define SPARE_COL      "spare"
-#define ERROR_COL      "errors"
+#define SPARE_COL "spare"
+#define ERROR_COL "errors"
 #define RISK_GROUP_COL "rg"
 #define DEFAULT_EXPIRE 3600
 #define DEFAULT_ERR_THRESHOLD 50
 #define DB_RETRY 10
 #define DB_DEFAULT_POLICY 0
 #define DEFAULT_FAILOVER_LEVEL 1
-#define DB_DEFAULT_TRANSACTION_LEVEL "READ UNCOMMITED"
+#define DB_DEFAULT_TRANSACTION_LEVEL "READ UNCOMMITTED"
 #define DB_DEFAULT_CONNECTION_EXPIRES 300
 #define DEFAULT_DB_TYPE "single"
 #define DEFAULT_DOMAIN_DB "location=cluster,cfa=single"
@@ -88,6 +88,7 @@ extern str uniq_col;
 
 extern int db_mode;
 extern int use_domain;
+extern int use_domain_crc32;
 extern int desc_time_order;
 extern int cseq_delay;
 extern int ul_fetch_rows;
@@ -118,12 +119,15 @@ extern int db_write;
 extern int db_master_write;
 extern int db_use_transactions;
 extern str db_transaction_level;
-extern char * isolation_level;
+extern char *isolation_level;
 extern int connection_expires;
 extern int alg_location;
 
-extern int  max_loc_nr;
-extern int * mdb_w_available;
+extern int max_loc_nr;
+extern int *mdb_w_available;
 extern int mdb_availability_control;
+
+time_t ul_db_datetime_set(time_t v);
+time_t ul_db_datetime_get(time_t v);
 
 #endif /* UL_MOD_H */

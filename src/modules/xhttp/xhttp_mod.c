@@ -65,7 +65,7 @@ static char *xhttp_url_skip = NULL;
 static regex_t xhttp_url_skip_regexp;
 
 /** SL API structure */
-sl_api_t slb;
+static sl_api_t _xhttp_slb;
 
 static str xhttp_event_callback = STR_NULL;
 
@@ -143,13 +143,13 @@ static int mod_init(void)
 		xhttp_route_no = route_no;
 	}
 
-	if(cfg_get(tcp, tcp_cfg, accept_no_cl)==0) {
+	if(cfg_get(tcp, tcp_cfg, accept_no_cl) == 0) {
 		LM_WARN("tcp_accept_no_cl not set - usually required"
-				" to handle HTTP requests with no Content-Lenght\n");
+				" to handle HTTP requests with no Content-Length\n");
 	}
 
 	/* bind the SL API */
-	if(sl_load_api(&slb) != 0) {
+	if(sl_load_api(&_xhttp_slb) != 0) {
 		LM_ERR("cannot bind to SL API\n");
 		return -1;
 	}
@@ -333,7 +333,7 @@ static int xhttp_handler(sip_msg_t *msg)
 	ret = NONSIP_MSG_DROP;
 
 	if(!IS_HTTP(msg)) {
-		/* oly http msg type */
+		/* only http msg type */
 		return NONSIP_MSG_PASS;
 	}
 
@@ -424,7 +424,7 @@ static int xhttp_send_reply(
 		LM_DBG("response with body: %.*s\n", body->len, body->s);
 	}
 	LM_DBG("sending out response: %d %.*s\n", code, reason->len, reason->s);
-	if(slb.sreply(msg, code, reason) < 0) {
+	if(_xhttp_slb.sreply(msg, code, reason) < 0) {
 		LM_ERR("Error while sending reply\n");
 		return -1;
 	}
@@ -527,11 +527,11 @@ static sr_kemi_xval_t _sr_kemi_xhttp_xval = {0};
 /**
  *
  */
-static sr_kemi_xval_t* ki_xhttp_get_hu(sip_msg_t *msg)
+static sr_kemi_xval_t *ki_xhttp_get_hu(sip_msg_t *msg)
 {
 	memset(&_sr_kemi_xhttp_xval, 0, sizeof(sr_kemi_xval_t));
 
-	if(msg==NULL) {
+	if(msg == NULL) {
 		sr_kemi_xval_null(&_sr_kemi_xhttp_xval, SR_KEMI_XVAL_NULL_EMPTY);
 		return &_sr_kemi_xhttp_xval;
 	}

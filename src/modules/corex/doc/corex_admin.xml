@@ -109,7 +109,7 @@ modparam("corex", "alias_subdomains", "udp:sip-router.org:5060")
 		<itemizedlist>
 		<listitem>
 			<para>
-			<emphasis>type</emphasis> - it can be "A" (IPv4) or "AAAA" (IPv6)
+			<emphasis>type</emphasis> - it can be "A" (IPv4), "AAAA" (IPv6) or "SRV"
 			</para>
 		</listitem>
 		<listitem>
@@ -125,6 +125,21 @@ modparam("corex", "alias_subdomains", "udp:sip-router.org:5060")
 		<listitem>
 			<para>
 			<emphasis>ttl</emphasis> - TTL value
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+			<emphasis>priority</emphasis> - priority value for SRV record
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+			<emphasis>weight</emphasis> - weight value for SRV record
+			</para>
+		</listitem>
+		<listitem>
+			<para>
+			<emphasis>port</emphasis> - port value for SRV record
 			</para>
 		</listitem>
 		<listitem>
@@ -146,6 +161,41 @@ modparam("corex", "alias_subdomains", "udp:sip-router.org:5060")
 ...
 modparam("corex", "dns_cache", "type=A;name=kamailio.org;addr=193.22.119.66;ttl=3600000;flags=0")
 modparam("corex", "dns_cache", "type=AAAA;name=kamailio.org;addr=2a00:d60:0:400::2;ttl=3600000;flags=0")
+...
+</programlisting>
+	    </example>
+	</section>
+	<section id="corex.p.dns_file">
+	    <title><varname>dns_file</varname> (string)</title>
+	    <para>
+		Path to the file from where to load dns_cache records. It can be set
+		many times to add more than one file.
+	    </para>
+	    <para>
+	    Inside the file, the dns_cache record has to be in a single line, with
+	    the format of the dns_cache module parameter (see above). Empty lines
+	    or lines with whitespaces only are ignored. Comment lines have to start
+	    with '#'. Comments are not accepted after dns_cache records, only on
+	    separate lines.
+	    </para>
+	    <para>
+		<emphasis>
+		    Default value is <quote>NULL</quote>.
+		</emphasis>
+	    </para>
+	    <example>
+		<title>Set <varname>dns_file</varname> parameter</title>
+		<programlisting format="linespecific">
+...
+# content of /etc/kamailio/kamailio-cache.dns
+
+# IPv4 record
+type=A;name=kamailio.org;addr=193.22.119.66;ttl=3600000;flags=0
+# IPv6 record
+type=AAAA;name=kamailio.org;addr=2a00:d60:0:400::2;ttl=3600000;flags=0
+...
+...
+modparam("corex", "dns_file", "/etc/kamailio/kamailio-cache.dns")
 ...
 </programlisting>
 	    </example>
@@ -552,7 +602,7 @@ setxflag("$var(flag)");
 		<section id="corex.f.isxflagset">
 		<title><function moreinfo="none">isxflagset(flag)</function></title>
 		<para>
-			Return true of the extended message (transaction) flag is set.
+			Return true if the extended message (transaction) flag is set.
 		</para>
 		<para>Meaning of the parameters is as follows:</para>
 		<itemizedlist>
@@ -839,6 +889,42 @@ request_route {
 </programlisting>
 		</example>
 		</section>
+		<section id="corex.f.via_reply_add_xavp_params">
+		<title><function moreinfo="none">via_reply_add_xavp_params(flags)</function></title>
+		<para>
+			Control if fields of the xavp with the name specified by
+			xavp_via_reply_params global parameter are added or not to the top Via
+			of replies.
+		</para>
+		<para>Meaning of the parameters is as follows:</para>
+		<itemizedlist>
+		<listitem>
+			<para>
+				<emphasis>flags</emphasis>: 1 - add xavp parameters; 0 - do not
+				add xavp parameters.
+			</para>
+		</listitem>
+		</itemizedlist>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>via_reply_add_xavp_params</function> usage</title>
+		<programlisting format="linespecific">
+...
+xavp_via_reply_params="xviarpl"
+...
+request_route {
+    ...
+	$xavp(xviarpl=&gt;srvid) = "1";
+	$xavp(xviarpl[0]=&gt;myval) = "xyz";
+    via_reply_add_xavp_params("1");
+    ...
+}
+...
+</programlisting>
+		</example>
+		</section>
 	<section id="corex.f.is_faked_msg">
 		<title>
 			<function moreinfo="none">is_faked_msg()</function>
@@ -888,6 +974,27 @@ event_route[dispatcher:dst-down] {
     if (is_socket_name("socktls")) {
         xinfo("matched local socket name\n");
     }
+...
+</programlisting>
+        </example>
+    </section>
+	<section id="corex.f.forward_reply">
+		<title>
+			<function moreinfo="none">forward_reply()</function>
+		</title>
+        <para>
+			Forward received reply on demand.
+        </para>
+        <para>
+        This function can be used in CORE_ONREPLY_ROUTE.
+        </para>
+        <example>
+        <title><function>forward_reply</function> usage</title>
+        <programlisting format="linespecific">
+...
+route[reply] {
+    forward_reply();
+}
 ...
 </programlisting>
         </example>
@@ -1006,6 +1113,20 @@ event_route[dispatcher:dst-down] {
 		&kamcli; rpc shm.info
 		</programlisting>
     </section>
+	<section id="corex.rpc.shm.report">
+		<title>
+		<function moreinfo="none">corex.shm.report</function>
+		</title>
+		<para>
+			Return shared memory manager usage report.
+		</para>
+		<para>
+		Example:
+		</para>
+        <programlisting  format="linespecific">
+		&kamcli; rpc shm.report
+		</programlisting>
+    </section>
 	<section id="corex.rpc.shm.stats">
 		<title>
 		<function moreinfo="none">corex.shm.stats</function>
@@ -1018,6 +1139,26 @@ event_route[dispatcher:dst-down] {
 		</para>
         <programlisting  format="linespecific">
 		&kamcli; rpc shm.stats
+		</programlisting>
+    </section>
+	<section id="corex.rpc.shm.rprint">
+		<title>
+		<function moreinfo="none">corex.shm.rprint</function>
+		</title>
+		<para>
+			Shared memory usage status report printed to file upon filter match
+			with the file of allocation.
+		</para>
+		<para>
+			It takes two parameters: the path to file where to write the report;
+			the string to match the allocation file (the match is done as value
+			included in the path fo the allocation file).
+		</para>
+		<para>
+		Example:
+		</para>
+        <programlisting  format="linespecific">
+			&kamcli; rpc shm.rprint /tmp/kamailioshm.txt dns_cache.c
 		</programlisting>
     </section>
     </section>
@@ -1047,7 +1188,7 @@ event_route[dispatcher:dst-down] {
         <para>
             Please note this event route is meant to <emphasis>prepare</emphasis>
             the message for on-wire communication, e.g. to do custom encryption or
-            decryption, compression/decompression etc. of the message sent to or 
+            decryption, compression/decompression etc. of the message sent to or
 			received from remote host. Therefore, except text operations,
 			no module functions or pseudo variables are available in this event route.
         </para>
@@ -1065,9 +1206,9 @@ event_route[dispatcher:dst-down] {
     <section>
     <title>Examples of Usage</title>
         <para>
-			To use network event_route[network:msg] the remote SIP UA must also implement and 
+			To use network event_route[network:msg] the remote SIP UA must also implement and
 			understand the encoding / decoding done in this event route. It is up to  &kamailio;
-			config script writer to define and implement how encoding and decoding is done. 
+			config script writer to define and implement how encoding and decoding is done.
 			Any language module such as app_perl or app_lua can be called in
 			in event_route[network:msg] to implement desired logic.
         </para>
@@ -1084,7 +1225,7 @@ event_route[dispatcher:dst-down] {
 			and sent to SIP application server at remote location unencrypted, where they are
 			processed as normal. One the way back, the messages received from SIP application
 			server at edge proxy can be encrypted before being sent to actual destination.
-			The edge proxy can check whether received message came from end-user or SIP 
+			The edge proxy can check whether received message came from end-user or SIP
 			application server by using simple regular expressions.
         </para>
         <para>
@@ -1185,4 +1326,3 @@ sub do_uncompress() {
         </example>
     </section>
 </chapter>
-

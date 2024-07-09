@@ -112,6 +112,7 @@ static int sca_call_info_header_append_appearances(
 	str state_str;
 	int slot_idx;
 	int len = -1;
+	int l1 = -1;
 	int usedlen = -1;
 
 	slot_idx =
@@ -153,9 +154,14 @@ static int sca_call_info_header_append_appearances(
 		sca_appearance_state_to_str(app->state, &state_str);
 
 		// state_str.s is a nul-terminated string literal
-		len += snprintf(hdrbuf + len, maxlen - len,
+		l1 = snprintf(hdrbuf + len, maxlen - len,
 				">;appearance-index=%d;appearance-state=%s", app->index,
 				state_str.s);
+		if(l1 < 0 || l1 >= maxlen - len) {
+			LM_ERR("failed to print the header\n");
+			return -1;
+		}
+		len += l1;
 
 		if(!SCA_STR_EMPTY(&app->uri)) {
 			hdrbuf[len] = ';';
@@ -1379,7 +1385,7 @@ void sca_call_info_ack_from_handler(sip_msg_t *msg, str *from_aor, str *to_aor)
 		// Polycom's music-on-hold implementation uses an INVITE with
 		// an empty body to get the remote party's SDP info, then INVITEs
 		// a pre-defined URI on a media server, using the remote party's
-		// SDP as the INVITE body. the media server streams hold music to
+		// SDP as the INVITE body. The media server streams hold music to
 		// the remote party.
 		//
 		// because the INVITE that triggers the hold  in this case doesn't
@@ -1903,7 +1909,7 @@ int sca_call_info_update(
 	memset(&call_info, 0, sizeof(sca_call_info));
 	call_info_hdr = get_hdr(msg, HDR_CALLINFO_T);
 	if(!SCA_HEADER_EMPTY(call_info_hdr)) {
-		// this needs to accomodate comma-separated appearance info
+		// this needs to accommodate comma-separated appearance info
 		if(sca_call_info_body_parse(&call_info_hdr->body, &call_info) < 0) {
 			LM_ERR("Bad Call-Info header body: %.*s\n",
 					STR_FMT(&call_info_hdr->body));

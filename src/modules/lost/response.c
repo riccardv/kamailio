@@ -1,7 +1,7 @@
 /*
  * lost module LoST response parsing functions
  *
- * Copyright (C) 2021 Wolfgang Kampichler
+ * Copyright (C) 2023 Wolfgang Kampichler
  * DEC112, FREQUENTIS AG
  *
  * This file is part of Kamailio, a free SIP server.
@@ -354,6 +354,69 @@ void lost_reverse_response_list(p_lost_list_t *head)
 }
 
 /*
+ * lost_append_response_list(list, str)
+ * appends str value to list object and returns str len
+ */
+int lost_append_response_list(p_lost_list_t *head, str val)
+{
+	int len = 0;
+	p_lost_list_t new = NULL;
+	p_lost_list_t current = *head;
+
+	new = lost_new_response_list();
+	if(new != NULL) {
+		new->value = lost_copy_string(val, &len);
+		new->next = NULL;
+
+		LM_DBG("### new list data [%.*s]\n", val.len, val.s);
+
+		if(current == NULL) {
+			*head = new;
+			return len;
+		}
+		while(current->next != NULL) {
+			current = current->next;
+		}
+		current->next = new;
+	}
+	return len;
+}
+
+/*
+ * lost_search_response_list(list, value, search)
+ * looks for search string in list object and returns pointer if found
+ */
+int lost_search_response_list(p_lost_list_t *list, char **val, const char *str)
+{
+	p_lost_list_t cur;
+	p_lost_list_t next;
+
+	if(*list == NULL)
+		return 0;
+
+	if(str == NULL)
+		return 0;
+
+	LM_DBG("### list data search [%s]\n", str);
+
+	next = *list;
+	while((cur = next) != NULL) {
+		next = cur->next;
+		if(cur->value != NULL) {
+			if(strncasecmp(cur->value, str, strlen(str)) == 0) {
+				*val = cur->value;
+
+				LM_DBG("###\t[%s] found\n", cur->value);
+
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/*
  * lost_delete_response_list(list)
  * removes response list from private memory
  */
@@ -466,7 +529,7 @@ void lost_delete_response_issues(p_lost_issue_t *list)
 
 /*
  * lost_delete_response_issue(mapping)
- * removes respone data object from private memory
+ * removes response data object from private memory
  */
 void lost_delete_response_data(p_lost_data_t *m)
 {
@@ -599,11 +662,11 @@ p_lost_issue_t lost_get_response_issues(xmlNodePtr node)
 				/* source property not found, clean up and return */
 				lost_delete_response_type(&issue); /* clean up */
 				break;
-			}			
+			}
 
 			LM_DBG("###\t[%s]\n", issue->type);
 
-			/* type and source property found ... parse text and copy */ 
+			/* type and source property found ... parse text and copy */
 			if(issue->info != NULL) {
 				issue->info->text = lost_get_property(cur, PROP_MSG, &len);
 				issue->info->lang = lost_get_property(cur, PROP_LANG, &len);
@@ -900,7 +963,9 @@ p_lost_fsr_t lost_parse_findServiceResponse(str ret)
 
 	if(doc == NULL) {
 		LM_ERR("invalid xml document: [%.*s]\n", ret.len, ret.s);
-		doc = xmlRecoverMemory(ret.s, ret.len);
+		doc = xmlReadMemory(ret.s, ret.len, 0, NULL,
+				XML_PARSE_NOBLANKS | XML_PARSE_NONET |
+				XML_PARSE_NOCDATA | XML_PARSE_RECOVER);
 		if(doc == NULL) {
 			LM_ERR("xml document recovery failed on: [%.*s]\n", ret.len, ret.s);
 			return NULL;
@@ -1009,7 +1074,7 @@ p_lost_fsr_t lost_parse_findServiceResponse(str ret)
  * 1: location reference found
  * 2: location value found
  * 3: location value and reference found
- * multiple occurences are ignored
+ * multiple occurrences are ignored
  */
 int lost_check_HeldResponse(xmlNodePtr node)
 {

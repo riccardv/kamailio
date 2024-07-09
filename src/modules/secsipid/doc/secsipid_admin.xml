@@ -117,7 +117,7 @@ modparam("secsipid", "timeout", 2)
 	<section>
 		<title><varname>cache_dir</varname> (str)</title>
 		<para>
-		The path to the directory where to save cached pyblic keys. If set,
+		The path to the directory where to save cached public keys. If set,
 		it activates the public key file caching in the libsecsipid library.
 		</para>
 		<para>
@@ -206,7 +206,7 @@ modparam("secsipid", "libopt", "CacheExpires=0")
 			Check the validity of the Identity header using the keys stored
 			in the file specified by "keyPath". If the parameter is empty,
 			the function is downloading the key using the URL from "info"
-			parameter of the Identity header, using the value od "timeout"
+			parameter of the Identity header, using the value of "timeout"
 			parameter to limit the download time. The validity of the JWT
 			body in the Identity header is also checked against the "expire"
 			parameter.
@@ -239,7 +239,7 @@ request_route {
 	</section>
 	<section id="secsipid.f.secsipid_check_identity_pubkey">
 		<title>
-		<function moreinfo="none">secsipid_check_identity(pubkeyVal)</function>
+		<function moreinfo="none">secsipid_check_identity_pubkey(pubkeyVal)</function>
 		</title>
 		<para>
 			Similar to secsipid_check_identity() with the public key value
@@ -291,9 +291,55 @@ request_route {
 ...
 request_route {
     ...
-	if(secsipid_check_identity("...", "/secsipid/$si/cert.pem")) { ... }
+	if(secsipid_check("...", "/secsipid/$si/cert.pem")) { ... }
     ...
-	if(secsipid_check_identity("...", "")) { ... }
+	if(secsipid_check("...", "")) { ... }
+    ...
+}
+...
+</programlisting>
+		</example>
+		<para>
+			Further checks can be done with config operations, decoding the JWT header
+			and payload using {s.select} and {s.decode.base64t} transformations
+			together with jansson module.
+		</para>
+	</section>
+	<section id="secsipid.f.secsipid_verify">
+		<title>
+		<function moreinfo="none">secsipid_verify(sIdentity, keyVal, opts)</function>
+		</title>
+		<para>
+			Check the validity of the "sIdentity" parameter using the key value
+			given in the parameter "keyVal". The validity of the JWT
+			in the sIdentity value is also checked against the "expire"
+			parameter.
+		</para>
+		<para>
+			The "opts" parameter provides the verify options:
+			<itemizedlist>
+			<listitem>
+			<para>
+				<emphasis>A</emphasis> (uppercase) - skip verifying the attributes
+				in the JWT header.
+			</para>
+			</listitem>
+			</itemizedlist>
+		</para>
+		<para>
+		The parameters can contain pseudo-variables.
+		</para>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>secsipid_verify</function> usage</title>
+		<programlisting format="linespecific">
+...
+request_route {
+    ...
+    secsipid_get_url("https://provider.com/stir-shaken/cert.pem", "$var(pubkey)");
+    if(secsipid_verify("$hdr(Identity)", "$var(pubkey)", "A")) { ... }
     ...
 }
 ...
@@ -310,11 +356,12 @@ request_route {
 		<function moreinfo="none">secsipid_get_url(url, ovar)</function>
 		</title>
 		<para>
-			Get the content of a URL and store the result in a variable.
+		Get the content of a URL and store the result in a variable. The result
+		is cached by libsecsipid, if caching is enabled.
 		</para>
 		<para>
 		The url parameters can contain pseudo-variables and ovar has to be
-		the name of a writtable pseudo-variable.
+		the name of a writable pseudo-variable.
 		</para>
 		<para>
 		This function can be used from ANY_ROUTE.
@@ -400,6 +447,36 @@ request_route {
 </programlisting>
 		</example>
 	</section>
+	<section id="secsipid.f.secsipid_build_identity_prvkey">
+		<title>
+		<function moreinfo="none">secsipid_build_identity_prvkey(origTN, destTN, attest, origID, x5u, keyData)</function>
+		</title>
+		<para>
+			Similar to secsipid_build_identity(), but the private key data is
+			provided as parameter instead to the file path.
+		</para>
+		<para>
+		The parameters can contain pseudo-variables.
+		</para>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>secsipid_build_identity_prvkey</function> usage</title>
+		<programlisting format="linespecific">
+...
+request_route {
+    ...
+    if(secsipid_build_identity_prvkey("$fU", "$rU", "A", "",
+            "https://kamailio.org/stir/$rd/cert.pem", "$var(prvkey)")) {
+        xinfo("Identity value: $secsipid(val)\n");
+    }
+    ...
+}
+...
+</programlisting>
+		</example>
+	</section>
 	<section id="secsipid.f.secsipid_sign">
 		<title>
 		<function moreinfo="none">secsipid_sign(sheaders, spaypload, keyPath)</function>
@@ -425,6 +502,39 @@ request_route {
     ...
     if(secsipid_sign("_JSON_HEADERS_", "_JSON_PAYLOAD_",
             "/secsipid/$rd/key.pem")) {
+        xinfo("Identity value: $secsipid(val)\n");
+    }
+    ...
+}
+...
+</programlisting>
+		</example>
+	</section>
+	<section id="secsipid.f.secsipid_sign_prvkey">
+		<title>
+		<function moreinfo="none">secsipid_sign_prvkey(sheaders, spaypload, keyData)</function>
+		</title>
+		<para>
+			Build Identity value using the private key given by "keyData" to sign the JWT body.
+			The sheaders and spayload have to be string representation of JSON
+			headers and payload to be signed. On success, the Indentity value is
+			stored in variable $secsipid(val). It also sets $secsipid(ret) to
+			the return value of the libsecsipid functions.
+		</para>
+		<para>
+		The parameters can contain pseudo-variables.
+		</para>
+		<para>
+		This function can be used from ANY_ROUTE.
+		</para>
+		<example>
+		<title><function>secsipid_sign_prvkey</function> usage</title>
+		<programlisting format="linespecific">
+...
+request_route {
+    ...
+    if(secsipid_sign_prvkey("_JSON_HEADERS_", "_JSON_PAYLOAD_",
+            "_PRIVATE_KEY_")) {
         xinfo("Identity value: $secsipid(val)\n");
     }
     ...
@@ -478,4 +588,3 @@ make install
 	</section>
 
 </chapter>
-

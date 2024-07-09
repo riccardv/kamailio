@@ -42,7 +42,7 @@ typedef struct hb_
 /* routing data is comprised of:
 	- a list of PSTN gw
 	- a hash over routing groups containing
-	pointers to the coresponding prefix trees
+	pointers to the corresponding prefix trees
 */
 typedef struct rt_data_
 {
@@ -91,7 +91,7 @@ int add_dst(rt_data_t *,
 		char *);
 
 /* build a routing info list element */
-rt_info_t *build_rt_info(int priority, tmrec_t *time,
+rt_info_t *build_rt_info(int priority, dr_tmrec_t *time,
 		/* ser routing table id */
 		int route_id,
 		/* list of destinations indexes */

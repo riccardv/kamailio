@@ -15,8 +15,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
@@ -69,7 +69,7 @@ dmq_node_list_t *init_dmq_node_list()
 	dmq_node_list_t *node_list;
 	node_list = shm_malloc(sizeof(dmq_node_list_t));
 	if(node_list == NULL) {
-		LM_ERR("no more shm\n");
+		SHM_MEM_ERROR;
 		return NULL;
 	}
 	memset(node_list, 0, sizeof(dmq_node_list_t));
@@ -89,6 +89,18 @@ int cmp_dmq_node(dmq_node_t *node, dmq_node_t *cmpnode)
 	return STR_EQ(node->uri.host, cmpnode->uri.host)
 		   && STR_EQ(node->uri.port, cmpnode->uri.port)
 		   && (node->uri.proto == cmpnode->uri.proto);
+}
+
+/**
+ * @brief compare dmq node ip addresses
+ */
+int cmp_dmq_node_ip(dmq_node_t *node, dmq_node_t *cmpnode)
+{
+	if(!node || !cmpnode) {
+		LM_ERR("cmp_dmq_node_ip - null node received\n");
+		return -1;
+	}
+	return ip_addr_cmp(&node->ip_address, &cmpnode->ip_address);
 }
 
 /**
@@ -164,7 +176,7 @@ dmq_node_t *build_dmq_node(str *uri, int shm)
 	if(shm) {
 		ret = shm_malloc(sizeof(dmq_node_t));
 		if(ret == NULL) {
-			LM_ERR("no more shm\n");
+			SHM_MEM_ERROR;
 			goto error;
 		}
 		memset(ret, 0, sizeof(dmq_node_t));
@@ -174,7 +186,7 @@ dmq_node_t *build_dmq_node(str *uri, int shm)
 	} else {
 		ret = pkg_malloc(sizeof(dmq_node_t));
 		if(ret == NULL) {
-			LM_ERR("no more pkg\n");
+			PKG_MEM_ERROR;
 			goto error;
 		}
 		memset(ret, 0, sizeof(dmq_node_t));
@@ -272,6 +284,21 @@ dmq_node_t *find_dmq_node(dmq_node_list_t *list, dmq_node_t *node)
 }
 
 /**
+ * @brief find dmq node ip
+ */
+dmq_node_t *find_dmq_node_ip(dmq_node_list_t *list, dmq_node_t *node)
+{
+	dmq_node_t *cur = list->nodes;
+	while(cur) {
+		if(cmp_dmq_node_ip(cur, node)) {
+			return cur;
+		}
+		cur = cur->next;
+	}
+	return NULL;
+}
+
+/**
  * @brief duplicate dmq node
  */
 dmq_node_t *shm_dup_node(dmq_node_t *node)
@@ -288,7 +315,7 @@ dmq_node_t *shm_dup_node(dmq_node_t *node)
 
 	newnode = shm_malloc(sizeof(dmq_node_t));
 	if(newnode == NULL) {
-		LM_ERR("no more shm\n");
+		SHM_MEM_ERROR;
 		return NULL;
 	}
 	memcpy(newnode, node, sizeof(dmq_node_t));
@@ -336,22 +363,26 @@ void pkg_free_node(dmq_node_t *node)
 int dmq_node_del_filter(dmq_node_list_t *list, dmq_node_t *node, int filter)
 {
 	dmq_node_t *cur, **prev;
+	LM_DBG("trying to acquire dmq_node_list->lock\n");
 	lock_get(&list->lock);
+	LM_DBG("acquired dmq_node_list->lock\n");
 	cur = list->nodes;
 	prev = &list->nodes;
 	while(cur) {
 		if(cmp_dmq_node(cur, node)) {
-			if(filter==0 || cur->local==0) {
+			if(filter == 0 || cur->local == 0) {
 				*prev = cur->next;
 				destroy_dmq_node(cur, 1);
 			}
 			lock_release(&list->lock);
+			LM_DBG("released dmq_node_list->lock\n");
 			return 1;
 		}
 		prev = &cur->next;
 		cur = cur->next;
 	}
 	lock_release(&list->lock);
+	LM_DBG("released dmq_node_list->lock\n");
 	return 0;
 }
 
@@ -360,7 +391,7 @@ int dmq_node_del_filter(dmq_node_list_t *list, dmq_node_t *node, int filter)
  */
 int del_dmq_node(dmq_node_list_t *list, dmq_node_t *node)
 {
-	return  dmq_node_del_filter(list, node, 0);
+	return dmq_node_del_filter(list, node, 0);
 }
 
 /**
@@ -392,11 +423,14 @@ dmq_node_t *add_dmq_node(dmq_node_list_t *list, str *uri)
 		goto error;
 	}
 	LM_DBG("dmq node successfully created\n");
+	LM_DBG("trying to acquire dmq_node_list->lock\n");
 	lock_get(&list->lock);
+	LM_DBG("acquired dmq_node_list->lock\n");
 	newnode->next = list->nodes;
 	list->nodes = newnode;
 	list->count++;
 	lock_release(&list->lock);
+	LM_DBG("released dmq_node_list->lock\n");
 	return newnode;
 error:
 	return NULL;
@@ -408,17 +442,21 @@ error:
 int update_dmq_node_status(dmq_node_list_t *list, dmq_node_t *node, int status)
 {
 	dmq_node_t *cur;
+	LM_DBG("trying to acquire dmq_node_list->lock\n");
 	lock_get(&list->lock);
+	LM_DBG("acquired dmq_node_list->lock\n");
 	cur = list->nodes;
 	while(cur) {
 		if(cmp_dmq_node(cur, node)) {
 			cur->status = status;
 			lock_release(&list->lock);
+			LM_DBG("released dmq_node_list->lock\n");
 			return 1;
 		}
 		cur = cur->next;
 	}
 	lock_release(&list->lock);
+	LM_DBG("released dmq_node_list->lock\n");
 	return 0;
 }
 
@@ -443,9 +481,9 @@ int build_node_str(dmq_node_t *node, char *buf, int buflen)
 	len += 1;
 	memcpy(buf + len, node->uri.port.s, node->uri.port.len);
 	len += node->uri.port.len;
-	if(node->uri.proto!=PROTO_NONE && node->uri.proto!=PROTO_UDP
-			&& node->uri.proto!=PROTO_OTHER) {
-		if(get_valid_proto_string(node->uri.proto, 1, 0, &sproto)<0) {
+	if(node->uri.proto != PROTO_NONE && node->uri.proto != PROTO_UDP
+			&& node->uri.proto != PROTO_OTHER) {
+		if(get_valid_proto_string(node->uri.proto, 1, 0, &sproto) < 0) {
 			LM_WARN("unknown transport protocol - fall back to udp\n");
 			sproto.s = "udp";
 			sproto.len = 3;

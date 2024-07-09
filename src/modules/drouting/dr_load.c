@@ -87,7 +87,7 @@ static struct dr_gwl_tmp *dr_gw_lists = NULL;
 #define check_val(_val, _type, _not_null, _is_empty_str) \
 	do {                                                 \
 		if((_val)->type != _type) {                      \
-			LM_ERR("bad column type\n");                  \
+			LM_ERR("bad column type\n");                 \
 			goto error;                                  \
 		}                                                \
 		if(_not_null && (_val)->nul) {                   \
@@ -138,7 +138,7 @@ static int add_tmp_gw_list(unsigned int id, char *list)
 	list_len = strlen(list) + 1;
 	tmp = (struct dr_gwl_tmp *)pkg_malloc(sizeof(struct dr_gwl_tmp) + list_len);
 	if(tmp == NULL) {
-		LM_ERR("no more pkg mem\n");
+		PKG_MEM_ERROR;
 		return -1;
 	}
 	tmp->id = id;
@@ -173,35 +173,35 @@ static void free_tmp_gw_list(void)
 }
 
 
-static inline tmrec_t *parse_time_def(char *time_str)
+static inline dr_tmrec_t *parse_time_def(char *time_str)
 {
-	tmrec_t *time_rec;
+	dr_tmrec_t *time_rec;
 	char *p, *s;
 
 	p = time_str;
 	time_rec = 0;
 
-	time_rec = (tmrec_t *)shm_malloc(sizeof(tmrec_t));
+	time_rec = (dr_tmrec_t *)shm_malloc(sizeof(dr_tmrec_t));
 	if(time_rec == 0) {
-		LM_ERR("no more pkg mem\n");
+		PKG_MEM_ERROR;
 		goto error;
 	}
-	memset(time_rec, 0, sizeof(tmrec_t));
+	memset(time_rec, 0, sizeof(dr_tmrec_t));
 
 	/* empty definition? */
 	if(time_str == 0 || *time_str == 0)
 		goto done;
 
-	load_TR_value(p, s, time_rec, tr_parse_dtstart, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_duration, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_freq, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_until, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_interval, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_byday, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_bymday, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_byyday, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_byweekno, parse_error, done);
-	load_TR_value(p, s, time_rec, tr_parse_bymonth, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_dtstart, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_duration, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_freq, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_until, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_interval, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_byday, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_bymday, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_byyday, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_byweekno, parse_error, done);
+	load_TR_value(p, s, time_rec, dr_tr_parse_bymonth, parse_error, done);
 
 /* success */
 done:
@@ -211,7 +211,7 @@ parse_error:
 			(int)(long)(p - time_str));
 error:
 	if(time_rec)
-		tmrec_free(time_rec);
+		dr_tmrec_free(time_rec);
 	return 0;
 }
 
@@ -287,7 +287,7 @@ rt_data_t *dr_load_routing_info(db_func_t *dr_dbf, db1_con_t *db_hdl,
 	db_row_t *row;
 	rt_info_t *ri;
 	rt_data_t *rdata;
-	tmrec_t *time_rec;
+	dr_tmrec_t *time_rec;
 	unsigned int id;
 	str s_id;
 	int i, n;
@@ -359,7 +359,7 @@ rt_data_t *dr_load_routing_info(db_func_t *dr_dbf, db1_con_t *db_hdl,
 			check_val(ROW_VALUES(row) + 5, DB1_STRING, 0, 0);
 			str_vals[2] = (char *)VAL_STRING(ROW_VALUES(row) + 5);
 
-			/* add the destinaton definition in */
+			/* add the destination definition in */
 			if(add_dst(rdata, int_vals[0], str_vals[0], int_vals[1],
 					   str_vals[1], int_vals[2], str_vals[2])
 					< 0) {
@@ -550,7 +550,7 @@ rt_data_t *dr_load_routing_info(db_func_t *dr_dbf, db1_con_t *db_hdl,
 				LM_ERR("failed to add routing info for rule id %d -> "
 					   "skipping\n",
 						int_vals[0]);
-				tmrec_free(time_rec);
+				dr_tmrec_free(time_rec);
 				continue;
 			}
 			/* add the rule */

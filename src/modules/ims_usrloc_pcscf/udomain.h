@@ -4,7 +4,7 @@
  *
  * The initial version of this code was written by Dragos Vingarzan
  * (dragos(dot)vingarzan(at)fokus(dot)fraunhofer(dot)de and the
- * Fruanhofer Institute. It was and still is maintained in a separate
+ * Fraunhofer FOKUS Institute. It was and still is maintained in a separate
  * branch of the original SER. We are therefore migrating it to
  * Kamailio/SR and look forward to maintaining it from here on out.
  * 2011/2012 Smile Communications, Pty. Ltd.
@@ -14,7 +14,7 @@
  * effort to add full IMS support to Kamailio/SR using a new and
  * improved architecture
  *
- * NB: Alot of this code was originally part of OpenIMSCore,
+ * NB: A lot of this code was originally part of OpenIMSCore,
  * FhG Fokus.
  * Copyright (C) 2004-2006 FhG Fokus
  * Thanks for great work! This is an effort to
@@ -41,6 +41,7 @@
  *
  */
 
+
 #ifndef UDOMAIN_H
 #define UDOMAIN_H
 
@@ -54,33 +55,45 @@
 #include "hslot.h"
 #include "usrloc.h"
 
-struct hslot;   /*!< Hash table slot */
+struct hslot;	 /*!< Hash table slot */
 struct pcontact; /*!< contact record */
 
-int new_udomain(str* _n, int _s, udomain_t** _d);
-void free_udomain(udomain_t* _d);
-void print_udomain(FILE* _f, udomain_t* _d);
+int new_udomain(str *_n, int _s, udomain_t **_d);
+void free_udomain(udomain_t *_d);
+void print_udomain(FILE *_f, udomain_t *_d);
 
-void mem_timer_udomain(udomain_t* _d);
-int mem_insert_pcontact(struct udomain* _d, str* _contact, struct pcontact_info* _ci, struct pcontact** _c);
-void mem_delete_pcontact(udomain_t* _d, struct pcontact* _r);
+void mem_timer_udomain(udomain_t *_d);
+int mem_insert_pcontact(struct udomain *_d, str *_contact,
+		struct pcontact_info *_ci, struct pcontact **_c);
+void mem_delete_pcontact(udomain_t *_d, struct pcontact *_r);
 
-void lock_udomain(udomain_t* _d, str* _via_host, unsigned short via_port, unsigned short via_protot);
-void unlock_udomain(udomain_t* _d, str* _via_host, unsigned short via_port, unsigned short via_proto);
+void lock_udomain(udomain_t *_d, str *_via_host, unsigned short via_port,
+		unsigned short via_protot);
+void unlock_udomain(udomain_t *_d, str *_via_host, unsigned short via_port,
+		unsigned short via_proto);
 
-void lock_ulslot(udomain_t* _d, int i);
-void unlock_ulslot(udomain_t* _d, int i);
+void lock_ulslot(udomain_t *_d, int i);
+void unlock_ulslot(udomain_t *_d, int i);
 
-int update_rx_regsession(struct udomain* _d, str* session_id, struct pcontact* _c);
-int update_pcontact(struct udomain* _d, struct pcontact_info* _ci, struct pcontact* _c);
-int insert_pcontact(struct udomain* _d, str* _contact, struct pcontact_info* _ci, struct pcontact** _r);
-int get_pcontact(udomain_t* _d, pcontact_info_t* contact_info, struct pcontact** _c, int reverse_search);
-int assert_identity(udomain_t* _d, str * _host, unsigned short _port, unsigned short _proto, str * _identity);
-int delete_pcontact(udomain_t* _d, struct pcontact* _r);
-int unreg_pending_contacts_cb(udomain_t* _d, pcontact_t* _c, int type);
-int update_security(udomain_t* _d, security_type _t, security_t* _s, struct pcontact* _c);
-int update_temp_security(udomain_t* _d, security_type _t, security_t* _s, struct pcontact* _c);
+int update_rx_regsession(
+		struct udomain *_d, str *session_id, struct pcontact *_c);
+int update_pcontact(
+		struct udomain *_d, struct pcontact_info *_ci, struct pcontact *_c);
+int insert_pcontact(struct udomain *_d, str *_contact,
+		struct pcontact_info *_ci, struct pcontact **_r);
+int get_pcontact(udomain_t *_d, pcontact_info_t *contact_info,
+		struct pcontact **_c, int reverse_search);
+int assert_identity(udomain_t *_d, str *_host, unsigned short _port,
+		unsigned short _proto, str *_identity);
+int delete_pcontact(udomain_t *_d, struct pcontact *_r);
+int unreg_pending_contacts_cb(udomain_t *_d, pcontact_t *_c, int type);
+int update_security(
+		udomain_t *_d, security_type _t, security_t *_s, struct pcontact *_c);
+int update_temp_security(
+		udomain_t *_d, security_type _t, security_t *_s, struct pcontact *_c);
 
-int preload_udomain(db1_con_t* _c, udomain_t* _d);
-
+int preload_udomain(db1_con_t *_c, udomain_t *_d);
+int audit_usrloc_expired_pcontacts(udomain_t *_d);
+int db_load_pcontact(udomain_t *_d, str *_aor, int insert_cache,
+		struct pcontact **_c, pcontact_info_t *contact_info);
 #endif

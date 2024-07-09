@@ -16,14 +16,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License 
- * along with this program; if not, write to the Free Software 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- * 
+ *
  */
 
 /*! \file
- * Berkeley DB : 
+ * Berkeley DB :
  *
  * \ingroup database
  */
@@ -266,10 +266,10 @@ int km_bdb_val2str(db_val_t *_v, char *_s, int *_len)
 				LM_ERR("Destination buffer too short for blob\n");
 				return -7;
 			} else {
-				LM_DBG("Converting BLOB [%s]\n", _s);
-				_s = VAL_BLOB(_v).s;
-				*_len = 0;
-				return -8;
+				LM_DBG("Converted BLOB\n");
+				memcpy(_s, VAL_BLOB(_v).s, l);
+				*_len = l;
+				return 0;
 			}
 			break;
 

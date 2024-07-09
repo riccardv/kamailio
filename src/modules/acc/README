@@ -125,13 +125,14 @@ Sven Knoblich
               6.46. reason_from_hf (int)
               6.47. clone_msg (int)
               6.48. cdr_on_failed (int)
+              6.49. acc_extra_size (int)
+              6.50. cdr_extra_size (int)
 
         7. Functions
 
               7.1. acc_log_request(comment)
               7.2. acc_db_request(comment, table)
               7.3. acc_request(comment, table)
-              7.4. acc_diam_request(comment)
 
    2. Frequently Asked Questions
 
@@ -185,10 +186,11 @@ Sven Knoblich
    1.46. reason_from_hf
    1.47. clone_msg
    1.48. cdr_on_failed
-   1.49. acc_log_request usage
-   1.50. acc_db_request usage
-   1.51. acc_db_request usage
-   1.52. acc_diam_request usage
+   1.49. acc_extra_size
+   1.50. cdr_extra_size
+   1.51. acc_log_request usage
+   1.52. acc_db_request usage
+   1.53. acc_db_request usage
 
 Chapter 1. Admin Guide
 
@@ -281,13 +283,14 @@ Chapter 1. Admin Guide
         6.46. reason_from_hf (int)
         6.47. clone_msg (int)
         6.48. cdr_on_failed (int)
+        6.49. acc_extra_size (int)
+        6.50. cdr_extra_size (int)
 
    7. Functions
 
         7.1. acc_log_request(comment)
         7.2. acc_db_request(comment, table)
         7.3. acc_request(comment, table)
-        7.4. acc_diam_request(comment)
 
 1. Overview
 
@@ -298,9 +301,9 @@ Chapter 1. Admin Guide
    support for radius is enabled.
 
    There is some very early support of the Diameter protocol in the
-   “acc_diameter” module which will be deleted in coming releases. This
-   support is not up to date with the current Diameter protocols. If you
-   need Diameter support, please use the ims_charging module.
+   “acc_diameter” module, but is not up to date with the current Diameter
+   protocols. If you need Diameter support, please use the ims_charging
+   module.
 
    To account a transaction and to choose which set of backends to be
    used, the script writer just has to set some flags (see the module
@@ -310,7 +313,7 @@ Chapter 1. Admin Guide
    takes no acc-specific script command -- the functionality binds
    invisibly through transaction processing. Script writers just need to
    mark the transaction for accounting with proper setflag. Even so, the
-   module allows the script writter to force accounting in special cases
+   module allows the script writer to force accounting in special cases
    via some script functions.
 
    The accounting module will log by default a fixed set of attributes for
@@ -340,7 +343,7 @@ Chapter 1. Admin Guide
        out about it. In general, a better practice is to account from an
        end-device (such as PSTN gateway), which best knows about call
        status (including media status and PSTN status in case of the
-       gateway). However, CDR-base logging has the option to log existing
+       gateway). However, CDR-based logging has the option to log existing
        information from expired dialogs (the dlg_vars in cdr_extra) Please
        see cdr_expired_dlg_enable parameter - Section 6.32,
        “cdr_expired_dlg_enable (integer)”.
@@ -392,7 +395,7 @@ if (uri=~"sip:+40") /* calls to Romania */ {
      * extra_definition = log_name '=' pseudo_variable
 
    The full list of supported pseudo-variables in Kamailio is available
-   at: http://www.kamailio.org/wiki/cookbooks/devel/pseudovariables
+   at: https://www.kamailio.org/wikidocs/cookbooks/devel/pseudovariables
 
    Note: For all the ACK processed by tm, the registered callbacks (like
    acc module) will be called with the corresponding INVITE transaction
@@ -432,13 +435,12 @@ if (uri=~"sip:+40") /* calls to Romania */ {
 
    A SIP call can have multiple legs due forwarding actions. For example
    user A calls user B which forwards the call to user C. There is only
-   one SIP call but with 2 legs ( A to B and B to C). Accounting the legs
+   one SIP call but with 2 legs (A to B and B to C). Accounting the legs
    of a call is required for proper billing of the calls (if C is a PSTN
    number and the call is billed, user B must pay for the call - as last
    party modifying the call destination-, and not A - as initiator of the
    call. Call forwarding on server is only one example which shows the
-   necessity of the having an accounting engine with multiple legs
-   support.
+   necessity of having an accounting engine with multiple legs support.
 
 3.2. Configuration
 
@@ -456,7 +458,7 @@ if (uri=~"sip:+40") /* calls to Romania */ {
    the call-leg pairs will be added (based on the found AVP sets).
 
    By default, the multiple call-leg support is disabled - it can be
-   enabled just be setting the per-leg set of AVPs via the multi_leg_info
+   enabled just by setting the per-leg set of AVPs via the multi_leg_info
    module parameter.
 
 3.3. Logged data
@@ -526,6 +528,11 @@ Note
    information given will not be stored in the CDR as they cannot be
    accessed by the end of the call when the CDR is logged.
 
+   The dialog module needs to be engaged on the dialogs that should be
+   accounted, that they will be tracked by the server. This is usally done
+   by calling the function dlg_manage() or setting the dlg_flag. Refer to
+   the documentation of the dialog module for more information.
+
    Sometimes, dialogs expire because the UA has a problem and a final
    message is never transmitted. You can toggle on/off the generation of
    CDR-based logging in such cases with only the dlg_vars showing by using
@@ -547,7 +554,7 @@ Note
    See also Section 6.35, “cdr_extra (string)”.
 
    The list with all pseudo-variables in Kamailio can be found at:
-   https://www.kamailio.org/wiki/.
+   https://www.kamailio.org/wikidocs/.
 
 4.3. CDR with Multi Call-Legs
 
@@ -574,8 +581,8 @@ Note
    it is necessary to store the caller and callee for each leg. All this
    helps to identify the involved phone partners and forwarding chain.
    When you route such calls multiple times to the same Proxy, you could
-   store the caller and callee within an transaction based avp and write
-   it into the dialog based dlg_var pv during a 200 INVITE.
+   store the caller and callee within a transaction based avp and write it
+   into the dialog based dlg_var pv during a 200 INVITE.
 
 4.3.2.1. Example for a spiraled Proxy
 
@@ -613,8 +620,8 @@ $dlg_var(callee) = $avp(callee); #callee='C'
 
 5.1. Kamailio Modules
 
-   The module depends on the following modules (in the other words the
-   listed modules must be loaded before this module):
+   The module depends on the following modules (in other words the listed
+   modules must be loaded before this module):
      * tm -- Transaction Manager
      * a database module -- If SQL support is used.
      * rr -- Record Route, if “detect_direction” module parameter is
@@ -677,6 +684,8 @@ $dlg_var(callee) = $avp(callee); #callee='C'
    6.46. reason_from_hf (int)
    6.47. clone_msg (int)
    6.48. cdr_on_failed (int)
+   6.49. acc_extra_size (int)
+   6.50. cdr_extra_size (int)
 
 6.1. early_media (integer)
 
@@ -693,7 +702,7 @@ modparam("acc", "early_media", 1)
 
    Per transaction flag which says if the transaction should be accounted
    also in case of failure (SIP status code >= 300). This flag triggers
-   accouting when the whole transaction fails (on the server side).
+   accounting when the whole transaction fails (on the server side).
 
    Default value is not-set (no flag).
 
@@ -950,7 +959,7 @@ modparam("acc", "db_table_missed_calls", "myMC_table")
 
 6.20. db_url (string)
 
-   SQL address -- database specific. If is set to NULL or empty string,
+   SQL address -- database specific. If it is set to NULL or empty string,
    the SQL support is disabled.
 
    Default value is “NULL” (SQL disabled).
@@ -1074,9 +1083,12 @@ modparam("acc", "db_insert_mode", 1)
 
 6.30. cdr_enable (integer)
 
-   Should CDR-based logging be enabled?
+   Enable CDR reporting - one record per call reported to "acc_cdrs"
+   table, relying on dialog module.
 
-   0 - off (default). 1 - on.
+   The value can be:
+     * 0 - off (default).
+     * 1 - on.
 
    Example 1.30. cdr_enable example
 ...
@@ -1097,8 +1109,8 @@ modparam("acc", "cdr_skip", "nocdr")
 6.32. cdr_expired_dlg_enable (integer)
 
    Should CDR-based logging be enabled in case of expired dialogs?
-
-   0 - off (default). 1 - on.
+     * 0 - off (default).
+     * 1 - on.
 
    Example 1.32. cdr_expired_dlg_enable example
 ...
@@ -1109,9 +1121,8 @@ modparam("acc", "cdr_expired_dlg_enable", 1)
 
    Should the start time be taken from the time when the dialog is
    created, or when the dialog is confirmed?
-
-   0 - use time of dialog creation (default). 1 - use time of dialog
-   confirmation.
+     * 0 - use time of dialog creation (default).
+     * 1 - use time of dialog confirmation.
 
    Example 1.33. cdr_start_on_confirmed example
 ...
@@ -1121,7 +1132,7 @@ modparam("acc", "cdr_start_on_confirmed", 1)
 6.34. cdr_facility (integer)
 
    Log facility to which CDR messages are issued to syslog. This allows to
-   easily seperate CDR-specific logging from the other log messages.
+   easily separate CDR-specific logging from the other log messages.
 
    Default value is LOG_DAEMON.
 
@@ -1139,7 +1150,7 @@ modparam("acc", "cdr_facility", "LOG_DAEMON")
 
    Example 1.35. cdr_extra example
 ...
-modparam("acc", "cdr_extra", "c1=$dlg_var(caller);c2=$dlg_var(callee)"
+modparam("acc", "cdr_extra", "c1=$dlg_var(caller);c2=$dlg_var(callee)")
 ...
 
 6.36. cdr_extra_nullable (integer)
@@ -1321,12 +1332,37 @@ modparam("acc", "clone_msg", 0)
 modparam("acc", "cdr_on_failed", 0)
 ...
 
+6.49. acc_extra_size (int)
+
+   Set the maximum number of extra attributes that can be stored in the
+   accounting record (event accounting record). It is related to log_extra
+   and db_extra module parameters.
+
+   Default value is 64.
+
+   Example 1.49. acc_extra_size
+...
+modparam("acc", "acc_extra_size", 100)
+...
+
+6.50. cdr_extra_size (int)
+
+   Set the maximum number of extra attributes that can be stored in the
+   call data record (cdr by dialog module). It is related to cdr_extra
+   module parameter.
+
+   Default value is 64.
+
+   Example 1.50. cdr_extra_size
+...
+modparam("acc", "cdr_extra_size", 100)
+...
+
 7. Functions
 
    7.1. acc_log_request(comment)
    7.2. acc_db_request(comment, table)
    7.3. acc_request(comment, table)
-   7.4. acc_diam_request(comment)
 
 7.1.  acc_log_request(comment)
 
@@ -1341,7 +1377,7 @@ modparam("acc", "cdr_on_failed", 0)
 
    This function can be used from ANY_ROUTE.
 
-   Example 1.49. acc_log_request usage
+   Example 1.51. acc_log_request usage
 ...
 acc_log_request("Some comment");
 $var(code) = 404;
@@ -1363,7 +1399,7 @@ acc_log_request("$var(code) Error: $avp(reason)");
 
    This function can be used from ANY_ROUTE.
 
-   Example 1.50. acc_db_request usage
+   Example 1.52. acc_db_request usage
 ...
 acc_db_request("Some comment", "SomeTable");
 acc_db_request("Some comment", "acc_$time(year)_$time(mon)");
@@ -1387,36 +1423,19 @@ acc_db_request("$var(code) Error: $avp(reason)", "SomeTable");
 
    This function can be used from ANY_ROUTE.
 
-   Example 1.51. acc_db_request usage
+   Example 1.53. acc_db_request usage
 ...
 acc_request("100 Received", "acc");
 acc_request("100 Received", "acc_$time(year)_$time(mon)");
 acc_db_request("$var(code) $avp(reason)", "acc");
 ...
 
-7.4.  acc_diam_request(comment)
-
-   Like acc_log_request, acc_diam_request reports on a request. It reports
-   to the configured Diameter server.
-
-   Meaning of the parameters is as follows:
-     * comment - Comment to be appended. The string can contain any number
-       of pseudo-variables.
-
-   This function can be used from ANY_ROUTE.
-
-   Example 1.52. acc_diam_request usage
-...
-acc_diam_request("Some comment");
-acc_diam_request("$var(code) Error: $avp(reason)");
-...
-
 Chapter 2. Frequently Asked Questions
 
-   2.1. What happened with old log_fmt parameter
-   2.2. What happened with old multi_leg_enabled parameter
+   2.1. What happened with old log_fmt parameter?
+   2.2. What happened with old multi_leg_enabled parameter?
    2.3. What happened with old src_leg_avp_id and dst_leg_avp_id
-          parameters
+          parameters?
 
    2.4. Where can I find more about Kamailio?
    2.5. Where can I post a question about this module?
@@ -1424,7 +1443,7 @@ Chapter 2. Frequently Asked Questions
 
    2.1.
 
-   What happened with old log_fmt parameter
+   What happened with old log_fmt parameter?
 
    The parameter became obsolete with the restructure of the data logged
    by ACC module (refer to the Overview chapter). For similar behaviour
@@ -1432,7 +1451,7 @@ Chapter 2. Frequently Asked Questions
 
    2.2.
 
-   What happened with old multi_leg_enabled parameter
+   What happened with old multi_leg_enabled parameter?
 
    The parameter became obsolete by the addition of the new multi_leg_info
    parameter. The multi-leg accounting is automatically enabled when
@@ -1440,9 +1459,9 @@ Chapter 2. Frequently Asked Questions
 
    2.3.
 
-   What happened with old src_leg_avp_id and dst_leg_avp_id parameters
+   What happened with old src_leg_avp_id and dst_leg_avp_id parameters?
 
-   The parameter was replaced by the more generic new parameter
+   The parameters were replaced by the more generic new parameter
    multi_leg_info. This allows logging (per-leg) of more information than
    just dst and src.
 
@@ -1459,9 +1478,11 @@ Chapter 2. Frequently Asked Questions
    First at all check if your question was already answered on one of our
    mailing lists:
      * User Mailing List -
-       https://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-users
+       https://lists.kamailio.org/mailman3/postorius/lists/sr-users.lists.
+       kamailio.org/
      * Developer Mailing List -
-       https://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-dev
+       https://lists.kamailio.org/mailman3/postorius/lists/sr-dev.lists.ka
+       mailio.org/
 
    E-mails regarding any stable Kamailio release should be sent to
    <sr-users@lists.kamailio.org> and e-mails regarding development

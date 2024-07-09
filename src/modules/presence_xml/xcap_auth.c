@@ -300,7 +300,7 @@ xmlNodePtr get_rule_node(subs_t *subs, xmlDocPtr xcap_tree)
 					LM_DBG("<many domain= %s>\n", domain);
 					if((strlen(domain) != subs->from_domain.len
 							   && strncmp(domain, subs->from_domain.s,
-										  subs->from_domain.len))) {
+									   subs->from_domain.len))) {
 						xmlFree(domain);
 						continue;
 					}
@@ -336,7 +336,7 @@ xmlNodePtr get_rule_node(subs_t *subs, xmlDocPtr xcap_tree)
 							if(strlen(domain) == subs->from_domain.len
 									&& (strncmp(domain, subs->from_domain.s,
 												subs->from_domain.len)
-											   == 0)) {
+											== 0)) {
 								LM_DBG("except domain match\n");
 								xmlFree(domain);
 								apply_rule = 0;
@@ -521,7 +521,7 @@ error:
 
 int http_get_rules_doc(str user, str domain, str *rules_doc)
 {
-	str uri;
+	str uri = STR_NULL;
 	xcap_doc_sel_t doc_sel;
 	char *doc = NULL;
 	xcap_serv_t *xs;
@@ -558,6 +558,8 @@ int http_get_rules_doc(str user, str domain, str *rules_doc)
 
 	rules_doc->s = doc;
 	rules_doc->len = doc ? strlen(doc) : 0;
+
+	pkg_free(uri.s);
 
 	return 0;
 

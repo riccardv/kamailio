@@ -27,20 +27,22 @@
 #include "duktape.h"
 
 int jsdt_sr_init_mod(void);
-int jsdt_sr_init_child(void);
+int jsdt_sr_init_child(int rank);
 void jsdt_sr_destroy(void);
 
 int jsdt_sr_initialized(void);
 
 int sr_kemi_jsdt_exec_func(duk_context *J, int eidx);
 
-int app_jsdt_run_ex(sip_msg_t *msg, char *func, char *p1, char *p2,
-		char *p3, int emode);
-int app_jsdt_run(sip_msg_t *msg, char *func, char *p1, char *p2,
-		char *p3);
+int app_jsdt_run_ex(
+		sip_msg_t *msg, char *func, char *p1, char *p2, char *p3, int emode);
+int app_jsdt_run(sip_msg_t *msg, char *func, char *p1, char *p2, char *p3);
 int app_jsdt_runstring(sip_msg_t *msg, char *script);
 int app_jsdt_dostring(sip_msg_t *msg, char *script);
 int app_jsdt_dofile(sip_msg_t *msg, char *script);
 
 int app_jsdt_init_rpc(void);
+
+duk_ret_t cb_resolve_module(duk_context *JJ);
+duk_ret_t cb_load_module(duk_context *JJ);
 #endif

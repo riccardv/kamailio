@@ -40,7 +40,7 @@ if (www_authenticate("realm", "subscriber")) {
     <section id="auth.f.has_credentials">
 	<title><function>has_credentials(realm)</function></title>
 	<para>
-		This function returns true of the request has Authorization or
+		This function returns true if the request has Authorization or
 		Proxy-Authorization header with provided realm. The parameter
 		can be string with pseudo-variables.
 	</para>
@@ -72,7 +72,7 @@ if (has_credentials("myrealm")) {
 		<para>Meaning of the parameters is as follows:</para>
 		<itemizedlist>
 		<listitem>
-			<para><emphasis>realm</emphasis> - Realm is a opaque string that
+			<para><emphasis>realm</emphasis> - Realm is an opaque string that
 			the user agent should present to the user so he can decide what
 			username and password to use. Usually this is domain of the host
 			the server is running on.
@@ -229,7 +229,7 @@ if (!auth_check("$fd", "subscriber", "1")) {
 		<para>Meaning of the parameters is as follows:</para>
 		<itemizedlist>
 		<listitem>
-			<para><emphasis>realm</emphasis> - Realm is a opaque string that
+			<para><emphasis>realm</emphasis> - Realm is an opaque string that
 			the user agent should present to the user so he can decide what
 			username and password to use. Usually this is domain of the host
 			the server is running on.
@@ -273,6 +273,10 @@ if (!auth_check("$fd", "subscriber", "1")) {
 			<listitem>
 				<para><emphasis>16</emphasis> - build challenge header with
 					stale=true</para>
+			</listitem>
+			<listitem>
+				<para><emphasis>32</emphasis> - don't invalidate nc on
+					authentication failure</para>
 			</listitem>
 
 			</itemizedlist>
@@ -408,5 +412,21 @@ if (auth_get_www_authenticate("$fd", "0", "$var(wauth)")) {
 </programlisting>
 		</example>
 	</section>
+    <section id="auth.f.auth_algorithm">
+	<title><function>auth_algorithm(algorithm)</function></title>
+	<para>
+	  Set hash algorithm used for digest authentication thus overriding
+      algorithm parameter. Possible values are the same as those of
+      algorithm parameter.  The parameter may be a pseudo variable.
+	</para>
+	<example>
+	    <title>auth_algorithm  example</title>
+	    <programlisting>
+...
+auth_algorithm("$alg");
+...
+	    </programlisting>
+	</example>
+    </section>
 
 </section>

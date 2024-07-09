@@ -2,10 +2,13 @@
 
 [![Build Status](https://github.com/kamailio/kamailio/actions/workflows/main.yml/badge.svg)](https://github.com/kamailio/kamailio/actions)
 [![Code Triage Badge](https://www.codetriage.com/kamailio/kamailio/badges/users.svg)](https://www.codetriage.com/kamailio/kamailio)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 Project Website:
 
-  * http://www.kamailio.org
+  * https://www.kamailio.org
+
+[20 Years Of Kamailio Development: Sep 3, 2001 - Sep 3, 2021](https://www.kamailio.org/w/2021/09/kamailio-20-years-of-development/)
 
 ## Overview
 
@@ -29,7 +32,7 @@ Github pull requests are the recommended way to contribute to Kamailio source co
 
 To keep a coherent and consistent history of the development, the commit messages format and content must follow the rules detailed at:
 
-  * https://www.kamailio.org/wiki/devel/github-contributions
+  * https://www.kamailio.org/wikidocs/devel/github-contributions
 
 Contributions must conform with licensing rules of the Kamailio project.
 
@@ -55,7 +58,7 @@ The online documentation for modules in the latest stable branch:
 
 The wiki collects a consistent number of tutorials, the indexes for variables, functions and parameters:
 
-  * https://www.kamailio.org/wiki/
+  * https://www.kamailio.org/wikidocs/
 
 Please read the README file in the source code, one per module.
 
@@ -63,14 +66,14 @@ Please read the README file in the source code, one per module.
 
 Step by step tutorials to install Kamailio from source code are available at:
 
-  * https://www.kamailio.org/wiki/start#installation
+  * https://www.kamailio.org/wikidocs/#installation
 
 Please read the INSTALL file from the source code for more information.
 
 Repositories for Linux packages:
 
-  * deb: https://www.kamailio.org/wiki/packages/debs
-  * rpm: https://www.kamailio.org/wiki/packages/rpms
+  * deb: https://www.kamailio.org/wikidocs/packages/debs
+  * rpm: https://www.kamailio.org/wikidocs/packages/rpms
 
 ## Issues And Bug Reports
 
@@ -84,26 +87,19 @@ To report a bug or make a request for new features, use the Issues Page in the K
 
 Mailing list for discussions regarding stable versions of Kamailio:
 
-  * **sr-users (at) lists.kamailio.org** - [sr-users web page](https://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-users)
+  * **sr-users (at) lists.kamailio.org** - [sr-users web page](https://lists.kamailio.org/mailman3/postorius/lists/sr-users.lists.kamailio.org/)
 
 Mailing list for discussions regarding the development of Kamailio and the state of master (devel) branch:
 
-  * **sr-dev (at) lists.kamailio.org** - [sr-dev web page](https://lists.kamailio.org/cgi-bin/mailman/listinfo/sr-dev)
+  * **sr-dev (at) lists.kamailio.org** - [sr-dev web page](https://lists.kamailio.org/mailman3/postorius/lists/sr-dev.lists.kamailio.org/)
 
 Mailing list for discussions with commercial purpose:
 
-  * **business (at) lists.kamailio.org** - [business web page](https://lists.kamailio.org/cgi-bin/mailman/listinfo/business)
+  * **business (at) lists.kamailio.org** - [business web page](https://lists.kamailio.org/mailman3/postorius/lists/business.lists.kamailio.org/)
 
 For more information about the mailing lists, please see:
 
   * https://www.kamailio.org/w/mailing-lists/
-
-### IRC Channel
-
-An open IRC discussion channel is managed by the community:
-
-  * irc server: irc.freenode.net
-  * irc channel: #kamailio
 
 ### Matrix Channel
 
@@ -118,10 +114,5 @@ News:
 
   * https://www.kamailio.org/w/category/news/
   * Twitter @kamailio
-
-## Travis-CI - Testing Build Environment
-
- * [travis-ci](https://travis-ci.org/kamailio/kamailio/builds/)
- * [docker build](/test/travis/README.md)
 
 **Thank you for flying Kamailio!**

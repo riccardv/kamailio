@@ -17,7 +17,7 @@ _gitcommit=991fe9b28e0e201309048f3b38a135037e40357a
 [ -z "${_gitcommit}" ] && _gitcommit="${pkgver}"
 
 pkgdesc="Open Source SIP Server"
-url="http://www.kamailio.org/"
+url="https://www.kamailio.org/"
 arch="all"
 pkgusers="kamailio"
 pkggroups="kamailio"
@@ -26,12 +26,12 @@ license="GPL-2.0"
 depends="gawk"
 options="!check"
 makedepends="bison db-dev flex freeradius-client-dev expat-dev
-	lksctp-tools-dev perl-dev postgresql-dev python2-dev python3-dev
-	pcre-dev mariadb-dev libxml2-dev curl-dev unixodbc-dev
+	lksctp-tools-dev perl-dev postgresql-dev python3-dev
+	pcre2-dev mariadb-dev libxml2-dev curl-dev unixodbc-dev
 	confuse-dev ncurses-dev sqlite-dev lua-dev openldap-dev openssl-dev
 	net-snmp-dev libuuid libev-dev jansson-dev json-c-dev libevent-dev
 	linux-headers libmemcached-dev rabbitmq-c-dev hiredis-dev
-	ruby-dev libmaxminddb-dev libunistring-dev mongo-c-driver-dev"
+	ruby-dev libmaxminddb-dev libunistring-dev mongo-c-driver-dev libwebsockets-dev"
 
 install="$pkgname.pre-install $pkgname.pre-upgrade"
 
@@ -44,7 +44,7 @@ install="$pkgname.pre-install $pkgname.pre-upgrade"
 #
 # Alpine specific changes:
 #
-# _mod_list_debugger is not defined in the orginal
+# _mod_list_debugger is not defined in the original
 #
 # Move avp from _mod_list_extras to _mod_list_basic, so that we can create
 # a kamailio-extras package
@@ -77,9 +77,9 @@ _mod_list_dbuid="db2_ops uid_auth_db uid_avp_db uid_domain uid_gflags \
 		uid_uri_db"
 
 # - modules for devel purposes
-_mod_list_devel="malloc_test print print_lib"
+_mod_list_devel="misctest print print_lib"
 
-# - modules depending on pcre3 library
+# - modules depending on pcre2 library
 _mod_list_pcre="dialplan lcr regex"
 
 # - modules depending on radius client library
@@ -131,13 +131,13 @@ _mod_list_purple="purple"
 _mod_list_memcached="memcached"
 
 # - modules depending on openssl library
-_mod_list_tls="auth_identity crypto tls"
+_mod_list_tls="crypto tls"
 
 # - modules depending on openssl library
 _mod_list_outbound="outbound"
 
 # - modules depending on unistring library
-_mod_list_websocket="websocket"
+_mod_list_websocket="websocket lwsc"
 
 # - modules depending on libval-threads libcrypto libsres libpthread
 _mod_list_dnssec="dnssec"
@@ -157,18 +157,15 @@ _mod_list_presence="presence presence_conference presence_dialoginfo \
 			rls xcap_client xcap_server"
 
 # - modules depending on lua library
-_mod_list_lua="app_lua app_lua_sr"
+_mod_list_lua="app_lua"
 
 # - modules depending on perl library
 _mod_list_perl="app_perl db_perlvdb"
 
-# - modules depending on python2 library
-_mod_list_python="app_python"
-
 # - modules depending on ruby library
 _mod_list_ruby="app_ruby"
 
-# - modules depending on python3 libarary
+# - modules depending on python3 library
 _mod_list_python3="app_python3"
 
 # - modules depending on ruby library
@@ -230,9 +227,6 @@ _mod_list_jansson="acc_json jansson janssonrpcc"
 # - modules depending on libm
 _mod_list_jsdt="app_jsdt"
 
-# - modules depending on sqlang
-_mod_list_sqlang="app_sqlang"
-
 # - modules depending on rabbitmq
 _mod_list_rabbitmq="rabbitmq"
 
@@ -254,8 +248,8 @@ for _i in db postgres sqlite dbtext mysql \
 	cpl xml unixodbc snmpstats xmpp carrierroute \
 	ldap utils tls presence lua ims outbound debugger \
 	extras json websocket authephemeral mongodb\
-	uuid ev memcached redis geoip2 jansson sqlang sipdump \
-	jsdt http_async kazoo rabbitmq sctp radius perl python \
+	uuid ev memcached redis geoip2 jansson sipdump \
+	jsdt http_async kazoo rabbitmq sctp radius perl \
 	python3 ruby; do
 
    subpackages="$subpackages $pkgname-$_i"
@@ -292,7 +286,7 @@ prepare() {
 	cd utils/kamctl/
 	sed -i -e 's:/run/kamailio.pid:/run/kamailio/kamailio.pid:g' \
 		kamctl.base kamctlrc || return 1
-	# we actually dont need bash
+	# we actually don't need bash
 	sed -i -e 's:/bin/bash:/bin/sh:' kamctl kamdbctl \
 		|| return 1
 }
@@ -368,7 +362,7 @@ sqlite() {
 dbtext() {
 	_db_driver DBText text dbtext dbtext || return 1
 	# kamdbctl.dbtext is a python script - but we will not make python
-	# a dependency because kamdbctl is not normaly used
+	# a dependency because kamdbctl is not normally used
 	depends="$depends"
 	mkdir -p "$subpkgdir"/usr/lib/kamailio/kamctl || return 1
 	mv "$pkgdir"/usr/lib/kamailio/kamctl/dbtextdb \
@@ -420,7 +414,7 @@ ldap() {
 }
 
 utils() {
-	_generic_pkg "miscelaneous utility functions" \
+	_generic_pkg "miscellaneous utility functions" \
 		"$_mod_list_utils"
 }
 
@@ -545,11 +539,6 @@ perl() {
 		"$_mod_list_perl"
 }
 
-python() {
-	_generic_pkg "Execute embedded Python2 scripts" \
-		"$_mod_list_python"
-}
-
 ruby() {
 	_generic_pkg "Ruby extensions for Kamailio" \
 		"$_mod_list_ruby"
@@ -563,11 +552,6 @@ python3() {
 ruby() {
 	_generic_pkg "Execute embedded Ruby scripts" \
 		"$_mod_list_ruby"
-}
-
-sqlang() {
-	_generic_pkg "Squirrel Language (SQLang) for Kamailio" \
-		"$_mod_list_sqlang"
 }
 
 rabbitmq() {

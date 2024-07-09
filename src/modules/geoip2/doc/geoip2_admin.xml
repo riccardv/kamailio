@@ -11,26 +11,25 @@
 <!-- Module User's Guide -->
 
 <chapter>
-    
+
     <title>&adminguide;</title>
-    
+
     <section>
 	<title>Overview</title>
 	<para>
-		This module allows real-time queries against the Max Mind GeoIP2 
-		database to be performed from the config script.  
+		This module allows real-time queries against the Max Mind GeoIP2
+		database to be performed from the config script.
 	</para>
 	<para>
-		The Max Mind GeoIP2 database is a map of IP network address assignments 
+		The Max Mind GeoIP2 database is a map of IP network address assignments
 		to geographical locales that can be useful -- though approximate --
 		in identifying the physical location with which an IP host address
 		is associated on a relatively granular level.
 	</para>
 	<para>
-		This database itself can be obtained on a free or commercial basis 
+		This database itself can be obtained on a free or commercial basis
 		from <ulink url="http://dev.maxmind.com/geoip/">
-		http://dev.maxmind.com/geoip/</ulink>. The 
-		library libmaxminddb
+		http://dev.maxmind.com/geoip/</ulink>. The library libmaxminddb
 		that interfaces with the Max Mind API, as well as scripts to
 		automate downloading of the on-disk version are available at
 		<ulink url="http://dev.maxmind.com/geoip/geoip2/downloadable/">
@@ -44,6 +43,9 @@
 	<para>
 		Many queries can be done and store results in different containers to
 		be able to use in parallel. Database is loaded at startup in cache.
+		The cache can be reloaded with an RPC command. In this case make sure
+		that you do not overwrite the file in place, but replace it, e.g. with
+		a <quote>move</quote> command.
 	</para>
     </section>
     <section>
@@ -78,7 +80,7 @@
     </section>
     <section>
 	<title>Parameters</title>
-	<section>
+	<section id="geoip2.p.path">
 	    <title><varname>path</varname> (string)</title>
 	    <para>
 		Path to the GeoIP2 database file.
@@ -97,18 +99,44 @@ modparam("geoip2", "path", "/usr/local/share/GeoIP/GeoLite2-City.mmdb")
 </programlisting>
 	    </example>
 	</section>
-
+	<section id="geoip2.p.resid">
+	    <title><varname>resid</varname> (str)</title>
+	    <para>
+		Preregister result container id during initialization, enabling the use
+		of the module in KEMI scripts. In native &kamailio;.cfg file, registration
+		is done when parsing config and finding variables.
+	    </para>
+	    <para>
+		<emphasis>
+		    Default value is <quote></quote> (empty).
+		</emphasis>
+	    </para>
+	    <example>
+		<title>Set <varname>resid</varname> parameter</title>
+		<programlisting format="linespecific">
+...
+modparam("geoip2", "resid", "src")
+...
+if(geoip2_match("$si", "src")) {
+   ...
+}
+...
+</programlisting>
+	    </example>
 	</section>
-	
+	</section>
+
     <section>
 	<title>Functions</title>
- 	<section>
+ 	<section id="geoip.f.geoip2_match">
 	    <title>
 		<function moreinfo="none">geoip2_match(ipaddr, pvc)</function>
 	    </title>
 	    <para>
 			Match ipaddr against the GeoIP database and set the pvc container. The
 			function has to be called before accessing a key via: $gip2(pvc=&gt;key).
+			At least one function needs to be present that access the pvc container,
+			otherwise this function will not work.
 	    </para>
 		<example>
 		<title><function>geoip2_match</function> usage</title>
@@ -120,15 +148,59 @@ if(geoip2_match("$si", "src"))
 </programlisting>
 	    </example>
 	</section>
-	
+	<section id="geoip.f.geoip2_distance">
+		<title>
+		<function moreinfo="none">geoip2_distance(ip_addr, latitude, longitude)</function>
+		</title>
+		<para>
+			The function calculates the distance in miles between the geocoordinates of
+			the IP address passed as parameter (the coordinates are calculated inside the function)
+			and the geocoordinates <emphasis>latitude</emphasis> and <emphasis>longitude</emphasis>
+		</para>
+		<example>
+		<title><function>geoip2_distance</function> usage</title>
+		<programlisting format="linespecific">
+...
+	$var(client_ip) = "109.184.18.64";
+	$var(lat_pos) = "53.200660";
+	$var(lon_pos) = "45.004640";
+	$var(dist) = geoip2_distance($var(client_ip), $var(lat_pos), $var(lon_pos));
+
+	xlog("distance is $var(dist)\n");
+...
+</programlisting>
+		</example>
+	</section>
+
     </section>
-	
-	<section>
+
+    <section>
+	<title>RPC Commands</title>
+	<section id="geoip2.r.reload">
+	   <title>
+		<function moreinfo="none">geoip2.reload</function>
+	   </title>
+	   <para>
+			Reload the internal GeoIP database. This is necessary after
+			the database file has been changed on the disk.
+	   </para>
+		<example>
+		<title><function>geoip2.reload</function> usage</title>
+		<programlisting format="linespecific">
+...
+&kamcmd; geoip2.reload
+...
+		</programlisting>
+		</example>
+	</section>
+    </section>
+
+	<section id="geoip.pvs">
 		<title>Exported pseudo-variables</title>
 		<itemizedlist>
 			<listitem><para>
-				<emphasis>$gip2(pvc=&gt;key)</emphasis> - <emphasis>pvc</emphasis> is an 
-				identifier for this query result;  it is designated by the second 
+				<emphasis>$gip2(pvc=&gt;key)</emphasis> - <emphasis>pvc</emphasis> is an
+				identifier for this query result;  it is designated by the second
 				parameter of geoip2_match(). The <emphasis>key</emphasis> can be one of
 				the following:
 				</para>

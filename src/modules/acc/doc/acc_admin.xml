@@ -23,10 +23,9 @@
 	</para>
 	<para>
 		There is some very early support of the <acronym>Diameter</acronym>
-		protocol in the <quote>acc_diameter</quote> module which will be deleted
-		in coming releases. This support is not up to date with the current
-		Diameter protocols. If you need Diameter support, please use the
-		<acronym>ims_charging</acronym> module.
+		protocol in the <quote>acc_diameter</quote> module, but is not up to date
+		with the current Diameter protocols. If you need Diameter support,
+		please use the <acronym>ims_charging</acronym> module.
 	</para>
 	<para>
 		To account a transaction and to choose which set of backends to be
@@ -37,7 +36,7 @@
 		module takes no acc-specific script command -- the functionality
 		binds invisibly through transaction processing. Script writers just
 		need to mark the transaction for accounting with proper setflag.
-		Even so, the module allows the script writter to force accounting in
+		Even so, the module allows the script writer to force accounting in
 		special cases via some script functions.
 	</para>
 	<para>
@@ -96,7 +95,7 @@
 			find out about it. In general, a better practice is to account from an
 			end-device (such as PSTN gateway), which best knows about call
 			status (including media status and PSTN status in case of the
-			gateway). However, CDR-base logging has the option to log existing
+			gateway). However, CDR-based logging has the option to log existing
 			information from expired dialogs (the dlg_vars in cdr_extra)
 			Please see cdr_expired_dlg_enable parameter - <xref linkend="acc.p.cdr_expired_dlg_enable"/>.
 			</para>
@@ -163,8 +162,8 @@ if (uri=~"sip:+40") /* calls to Romania */ {
 			<para>
 			The full list of supported pseudo-variables in &kamailio; is
 			available at:
-			<ulink url="http://www.kamailio.org/wiki/cookbooks/devel/pseudovariables">
-			http://www.kamailio.org/wiki/cookbooks/devel/pseudovariables</ulink>
+			<ulink url="https://www.kamailio.org/wikidocs/cookbooks/devel/pseudovariables">
+			https://www.kamailio.org/wikidocs/cookbooks/devel/pseudovariables</ulink>
 			</para>
 			<para>
 			Note: For all the ACK processed by tm, the registered callbacks
@@ -221,13 +220,13 @@ if (uri=~"sip:+40") /* calls to Romania */ {
 			<para>
 			A SIP call can have multiple legs due forwarding actions. For
 			example user A calls user B which forwards the call to user C.
-			There is only one SIP call but with 2 legs ( A to B and B to C).
+			There is only one SIP call but with 2 legs (A to B and B to C).
 			Accounting the legs of a call is required for proper billing of
 			the calls (if C is a PSTN number and the call is billed, user B
 			must pay for the call - as last party modifying the call
 			destination-, and not A - as initiator of the call. Call
 			forwarding on server is only one example which shows the
-			necessity of the having an accounting engine with multiple legs
+			necessity of having an accounting engine with multiple legs
 			support.
 			</para>
 		</section>
@@ -251,7 +250,7 @@ if (uri=~"sip:+40") /* calls to Romania */ {
 			</para>
 			<para>
 			By default, the multiple call-leg support is disabled - it can be
-			enabled just be setting the per-leg set of AVPs via the
+			enabled just by setting the per-leg set of AVPs via the
 			<varname>multi_leg_info</varname> module parameter.
 			</para>
 		</section>
@@ -326,6 +325,13 @@ if (uri=~"sip:+40") /* calls to Romania */ {
                 </para>
 
                 <para>
+                The dialog module needs to be engaged on the dialogs that should be accounted, that
+                they will be tracked by the server. This is usally done by calling the function
+                <emphasis>dlg_manage()</emphasis> or setting the <emphasis>dlg_flag</emphasis>.
+                Refer to the documentation of the dialog module for more information.
+                </para>
+
+                <para>
 				Sometimes, dialogs expire because the UA has a problem and a final message is never
 				transmitted. You can toggle on/off the generation of CDR-based logging in such cases
 				with only the dlg_vars showing by using the cdr_expired_dlg_enable parameter
@@ -384,7 +390,7 @@ if (uri=~"sip:+40") /* calls to Romania */ {
 				(e.g. chain=B;cfa;C|C;cfnr;D). Additionally it is necessary to store the
 				caller and callee for each leg. All this helps to identify the involved
 				phone partners and forwarding chain. When you route such calls multiple times
-				to the same Proxy, you could store the caller and callee within an transaction
+				to the same Proxy, you could store the caller and callee within a transaction
 				based avp and write it into the dialog based dlg_var pv during a 200 INVITE.
 				</para>
 				<section>
@@ -426,7 +432,7 @@ $dlg_var(callee) = $avp(callee); #callee='C'
 		<section>
 			<title>&kamailio; Modules</title>
 			<para>
-			The module depends on the following modules (in the other words
+			The module depends on the following modules (in other words
 			the listed modules must be loaded before this module):
 			<itemizedlist>
 				<listitem>
@@ -488,7 +494,7 @@ modparam("acc", "early_media", 1)
 		<para>
 		Per transaction flag which says if the transaction should be
 		accounted also in case of failure (SIP status code >= 300).
-		This flag triggers accouting when the whole transaction fails
+		This flag triggers accounting when the whole transaction fails
 		(on the server side).
 		</para>
 		<para>
@@ -860,7 +866,7 @@ modparam("acc", "db_table_missed_calls", "myMC_table")
 	<section id="acc.p.db_url">
 		<title><varname>db_url</varname> (string)</title>
 		<para>
-		SQL address -- database specific. If is set to NULL or empty string,
+		SQL address -- database specific. If it is set to NULL or empty string,
 		the SQL support is disabled.
 		</para>
 		<para>
@@ -1045,11 +1051,15 @@ modparam("acc", "db_insert_mode", 1)
 	<section id="acc.p.cdr_enable">
 		<title><varname>cdr_enable</varname> (integer)</title>
 		<para>
-		Should CDR-based logging be enabled?
+		Enable CDR reporting - one record per call reported to "acc_cdrs" table,
+		relying on dialog module.
 		</para>
 		<para>
-		0 - off (default).
-		1 - on.
+		The value can be:
+		<itemizedlist>
+		<listitem><para>0 - off (default).</para></listitem>
+		<listitem><para>1 - on.</para></listitem>
+		</itemizedlist>
 		</para>
 		<example>
 		<title>cdr_enable example</title>
@@ -1082,10 +1092,10 @@ modparam("acc", "cdr_skip", "nocdr")
 		<para>
 		Should CDR-based logging be enabled in case of expired dialogs?
 		</para>
-		<para>
-		0 - off (default).
-		1 - on.
-		</para>
+		<itemizedlist>
+		<listitem><para>0 - off (default).</para></listitem>
+		<listitem><para>1 - on.</para></listitem>
+		</itemizedlist>
 		<example>
 		<title>cdr_expired_dlg_enable example</title>
 		<programlisting format="linespecific">
@@ -1101,10 +1111,10 @@ modparam("acc", "cdr_expired_dlg_enable", 1)
 		Should the start time be taken from the time when the dialog is created,
         	or when the dialog is confirmed?
 		</para>
-		<para>
-		0 - use time of dialog creation (default).
-		1 - use time of dialog confirmation.
-		</para>
+		<itemizedlist>
+		<listitem><para>0 - use time of dialog creation (default).</para></listitem>
+		<listitem><para>1 - use time of dialog confirmation.</para></listitem>
+		</itemizedlist>
 		<example>
 		<title>cdr_start_on_confirmed example</title>
 		<programlisting format="linespecific">
@@ -1118,7 +1128,7 @@ modparam("acc", "cdr_start_on_confirmed", 1)
 		<title><varname>cdr_facility</varname> (integer)</title>
 		<para>
 		Log facility to which CDR messages are issued to syslog.
-		This allows to easily seperate CDR-specific logging from
+		This allows to easily separate CDR-specific logging from
 		the other log messages.
 		</para>
 		<para>
@@ -1146,7 +1156,7 @@ modparam("acc", "cdr_facility", "LOG_DAEMON")
 		<title>cdr_extra example</title>
 		<programlisting format="linespecific">
 ...
-modparam("acc", "cdr_extra", "c1=$dlg_var(caller);c2=$dlg_var(callee)"
+modparam("acc", "cdr_extra", "c1=$dlg_var(caller);c2=$dlg_var(callee)")
 ...
 </programlisting>
 		</example>
@@ -1438,6 +1448,47 @@ modparam("acc", "cdr_on_failed", 0)
 </programlisting>
 		</example>
 	</section>
+
+	<section id="acc.p.acc_extra_size">
+		<title><varname>acc_extra_size</varname> (int)</title>
+		<para>
+			Set the maximum number of extra attributes that can be stored in the
+			accounting record (event accounting record). It is related to log_extra
+			and db_extra module parameters.
+		</para>
+		<para>
+		Default value is 64.
+		</para>
+		<example>
+		<title>acc_extra_size</title>
+		<programlisting format="linespecific">
+...
+modparam("acc", "acc_extra_size", 100)
+...
+</programlisting>
+		</example>
+	</section>
+
+	<section id="acc.p.cdr_extra_size">
+		<title><varname>cdr_extra_size</varname> (int)</title>
+		<para>
+		Set the maximum number of extra attributes that can be stored in the
+		call data record (cdr by dialog module). It is related to cdr_extra
+		module parameter.
+		</para>
+		<para>
+		Default value is 64.
+		</para>
+		<example>
+		<title>cdr_extra_size</title>
+		<programlisting format="linespecific">
+...
+modparam("acc", "cdr_extra_size", 100)
+...
+</programlisting>
+		</example>
+	</section>
+
 	</section>
 
 	<section>
@@ -1554,37 +1605,6 @@ acc_db_request("$var(code) Error: $avp(reason)", "SomeTable");
 acc_request("100 Received", "acc");
 acc_request("100 Received", "acc_$time(year)_$time(mon)");
 acc_db_request("$var(code) $avp(reason)", "acc");
-...
-</programlisting>
-		</example>
-	</section>
-	<section id="acc.f.acc_diam_request">
-		<title>
-			<function moreinfo="none">acc_diam_request(comment)</function>
-		</title>
-		<para>
-		Like <function moreinfo="none">acc_log_request</function>,
-		<function moreinfo="none">acc_diam_request</function> reports on
-		a request. It reports to the configured Diameter server.
-		</para>
-		<para>
-		Meaning of the parameters is as follows:</para>
-		<itemizedlist>
-		<listitem>
-			<para><emphasis>comment</emphasis> - Comment to be appended.
-			The string can contain any number of pseudo-variables.
-			</para>
-		</listitem>
-		</itemizedlist>
-		<para>
-		This function can be used from ANY_ROUTE.
-		</para>
-		<example>
-		<title>acc_diam_request usage</title>
-		<programlisting format="linespecific">
-...
-acc_diam_request("Some comment");
-acc_diam_request("$var(code) Error: $avp(reason)");
 ...
 </programlisting>
 		</example>

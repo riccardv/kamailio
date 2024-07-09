@@ -44,6 +44,14 @@
 ## database access host (from where is kamctl used)
 # DBACCESSHOST=192.168.0.1
 
+## database host for super user (useful for specifying a local socket or virtual hostname)
+# defaults to value of DBHOST when not set
+# DBROOTHOST="localhost"
+
+## database port for super user (on some DB specifying the port will force TCP connections)
+# default value will depend on client DB tool
+# DBROOTPORT=""
+
 ## database super user (for ORACLE this is 'scheme-creator' user)
 # DBROOTUSER="root"
 
@@ -159,6 +167,10 @@
 ## PID file path - default is: /run/kamailio/kamailio.pid
 # PID_FILE=/run/kamailio/kamailio.pid
 
+## Kamailio Startup Configuration File
+## Default is: kamailio.cfg
+# STARTUP_CONFIG_FILE=kamailio.cfg
+
 ## Extra start options - default is: not set
-## example: start Kamailio with 64MB share memory: STARTOPTIONS="-m 64"
+## example: start Kamailio with 64MB shared memory: STARTOPTIONS="-m 64"
 # STARTOPTIONS=
